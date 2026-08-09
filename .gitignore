@@ -2,3 +2,6 @@
 /vidyut-data/data/
 /vidyut-data/dcs-data/
 *.log
+
+# Webstorm
+.idea
