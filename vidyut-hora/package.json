@@ -1,0 +1,35 @@
+{
+  "name": "@vidyut-hora/panchanga",
+  "version": "0.1.0",
+  "description": "Reusable TypeScript Panchanga calculations powered by Swiss Ephemeris",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "sources.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts --clean",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "sweph-wasm": "2.6.9"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  }
+}

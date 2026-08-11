@@ -1,0 +1,110 @@
+/**
+ * Source observance catalogue copied with permission from the daily Panchanga
+ * implementation listed in sources.md.  It is data only; matching occurs in
+ * PanchangaCalculator.observances().
+ */
+export interface SourceObservanceRecord {
+    readonly name: string;
+    readonly cat: "major" | "regional" | "monthly" | "weekly";
+    readonly region: string;
+    readonly type?: "solar" | "weekly";
+    readonly lunarMonth?: string;
+    readonly tithi?: number | readonly number[];
+    readonly weekday?: number;
+    readonly sunLonDeg?: number;
+    readonly aliases?: readonly string[];
+    readonly desc: string;
+}
+
+export const SOURCE_OBSERVANCES = [
+        // ── Core 25 Pan-India ──
+        { name: 'Makara Saṅkrānti', type: 'solar', sunLonDeg: 270, region: 'Pan-India', cat: 'major', aliases: ['Pongal', 'Bihu', 'Uttarāyaṇa'], desc: 'Harvest festival — Sun enters Makara' },
+        { name: 'Vasanta Pañcamī', lunarMonth: 'Māgha', tithi: 4, region: 'Pan-India', cat: 'major', desc: 'Sarasvatī Pūjā' },
+        { name: 'Mahā Śivarātri', lunarMonth: 'Māgha', tithi: 28, region: 'Pan-India', cat: 'major', desc: 'Great Vigil of Śiva' },
+        { name: 'Holikā Dahana', lunarMonth: 'Phālguna', tithi: 14, region: 'Pan-India', cat: 'major', desc: 'Holī eve bonfire' },
+        { name: 'Holī', lunarMonth: 'Phālguna', tithi: 14, region: 'Pan-India', cat: 'major', desc: 'Festival of Colours' },
+        { name: 'Hindu New Year', lunarMonth: 'Chaitra', tithi: 0, region: 'Pan-India', cat: 'major', aliases: ['Ugādi', 'Guḍī Pāḍvā', 'Puthāṇḍu'], desc: 'Lunar New Year' },
+        { name: 'Rāma Navamī', lunarMonth: 'Chaitra', tithi: 8, region: 'Pan-India', cat: 'major', desc: 'Birth of Lord Rāma' },
+        { name: 'Hanumān Jayantī', lunarMonth: 'Chaitra', tithi: 14, region: 'Pan-India', cat: 'major', desc: 'Birth of Hanumān' },
+        { name: 'Akṣaya Tṛtīyā', lunarMonth: 'Vaishākha', tithi: 2, region: 'Pan-India', cat: 'major', desc: 'Day of Eternal Prosperity' },
+        { name: 'Vaṭa Sāvitrī Vrata', lunarMonth: 'Jyeṣṭha', tithi: 14, region: 'Pan-India', cat: 'major', desc: 'Married women\'s vow' },
+        { name: 'Gaṅgā Daśaharā', lunarMonth: 'Jyeṣṭha', tithi: 9, region: 'Pan-India', cat: 'major', desc: 'Descent of Gaṅgā' },
+        { name: 'Jagannātha Ratha Yātrā', lunarMonth: 'Āṣāḍha', tithi: 1, region: 'Pan-India', cat: 'major', desc: 'Chariot Festival of Purī' },
+        { name: 'Guru Pūrṇimā', lunarMonth: 'Āṣāḍha', tithi: 14, region: 'Pan-India', cat: 'major', desc: 'Honouring the Guru' },
+        { name: 'Nāga Pañcamī', lunarMonth: 'Śrāvaṇa', tithi: 4, region: 'Pan-India', cat: 'major', desc: 'Serpent worship' },
+        { name: 'Varalakṣmī Vrata', lunarMonth: 'Śrāvaṇa', tithi: 14, region: 'Pan-India', cat: 'major', desc: 'Worship of Lakṣmī' },
+        { name: 'Rakṣā Bandhana', lunarMonth: 'Śrāvaṇa', tithi: 14, region: 'Pan-India', cat: 'major', aliases: ['Nāralī Pūrṇimā'], desc: 'Sibling bond' },
+        { name: 'Kṛṣṇa Janmāṣṭamī', lunarMonth: 'Śrāvaṇa', tithi: 22, region: 'Pan-India', cat: 'major', desc: 'Birth of Lord Kṛṣṇa' },
+        { name: 'Hāritālikā Tīj', lunarMonth: 'Bhādrapada', tithi: 2, region: 'Pan-India', cat: 'major', desc: 'Pārvatī\'s penance' },
+        { name: 'Gaṇeśa Caturthī', lunarMonth: 'Bhādrapada', tithi: 3, region: 'Pan-India', cat: 'major', desc: 'Birth of Lord Gaṇeśa' },
+        { name: 'Śārada Navarātri', lunarMonth: 'Āśvina', tithi: [0,1,2,3,4,5,6,7,8], region: 'Pan-India', cat: 'major', desc: 'Nine Nights of the Goddess' },
+        { name: 'Vijayadaśamī', lunarMonth: 'Āśvina', tithi: 9, region: 'Pan-India', cat: 'major', aliases: ['Dasaharā', 'Durgā Pūjā'], desc: 'Victory of Good over Evil' },
+        { name: 'Kojāgirī Pūrṇimā', lunarMonth: 'Āśvina', tithi: 14, region: 'Pan-India', cat: 'major', desc: 'Śarad Pūrṇimā — worship of Lakṣmī' },
+        { name: 'Karvā Cauth', lunarMonth: 'Kārttika', tithi: 18, region: 'Pan-India', cat: 'major', desc: 'Fasting for spouse\'s longevity' },
+        { name: 'Dhanterās', lunarMonth: 'Kārttika', tithi: 27, region: 'Pan-India', cat: 'major', desc: 'Worship of Dhanvantari' },
+        { name: 'Naraka Caturdaśī', lunarMonth: 'Kārttika', tithi: 28, region: 'Pan-India', cat: 'major', desc: 'Choti Dīvālī' },
+        { name: 'Dīpāvalī', lunarMonth: 'Kārttika', tithi: 29, region: 'Pan-India', cat: 'major', aliases: ['Dīvālī', 'Kālī Pūjā'], desc: 'Festival of Lights' },
+        { name: 'Govardhan Pūjā', lunarMonth: 'Kārttika', tithi: 0, region: 'Pan-India', cat: 'major', aliases: ['Annakūṭ'], desc: 'Worship of Govardhan Hill' },
+        { name: 'Bhāī Dūj', lunarMonth: 'Kārttika', tithi: 1, region: 'Pan-India', cat: 'major', aliases: ['Bhāu Bīj', 'Yama Dvitīyā'], desc: 'Sibling love' },
+        { name: 'Kārttika Pūrṇimā', lunarMonth: 'Kārttika', tithi: 14, region: 'Pan-India', cat: 'major', aliases: ['Dev Dīpāvalī'], desc: 'Festival of divine light' },
+
+        // ── Maharashtra & Goa ──
+        { name: 'Guḍī Pāḍvā', lunarMonth: 'Chaitra', tithi: 0, region: 'Maharashtra', cat: 'regional', desc: 'Marathi New Year' },
+        { name: 'Āṣāḍhī Ekādaśī', lunarMonth: 'Āṣāḍha', tithi: 10, region: 'Maharashtra', cat: 'regional', desc: 'Vārī pilgrimage to Paṇḍharpūr' },
+        { name: 'Nāralī Pūrṇimā', lunarMonth: 'Śrāvaṇa', tithi: 14, region: 'Maharashtra', cat: 'regional', desc: 'Coconut offering to the sea' },
+        { name: 'Polā', lunarMonth: 'Śrāvaṇa', tithi: 29, region: 'Maharashtra', cat: 'regional', desc: 'Honour of bulls and oxen' },
+        { name: 'Gaurī-Gaṇapati', lunarMonth: 'Bhādrapada', tithi: 3, region: 'Maharashtra', cat: 'regional', desc: 'Gaṇeśa and Gaurī worship' },
+
+        // ── Tamil Nadu ──
+        { name: 'Thai Pongal', type: 'solar', sunLonDeg: 270, region: 'Tamil Nadu', cat: 'regional', desc: 'Four-day harvest festival' },
+        { name: 'Puthāṇḍu', type: 'solar', sunLonDeg: 0, region: 'Tamil Nadu', cat: 'regional', desc: 'Tamil Solar New Year' },
+        { name: 'Thaipūsam', lunarMonth: 'Māgha', tithi: 14, region: 'Tamil Nadu', cat: 'regional', desc: 'Worship of Lord Murugan' },
+        { name: 'Āḍi Perukku', lunarMonth: 'Āṣāḍha', tithi: 2, region: 'Tamil Nadu', cat: 'regional', desc: 'Worship of River Kāverī' },
+        { name: 'Kārthigai Dīpam', lunarMonth: 'Kārttika', tithi: 14, region: 'Tamil Nadu', cat: 'regional', desc: 'Festival of lamps at Tiruvaṇṇāmalai' },
+        { name: 'Paṅguni Uthiram', lunarMonth: 'Phālguna', tithi: 14, region: 'Tamil Nadu', cat: 'regional', desc: 'Divine weddings of deities' },
+
+        // ── Karnataka, Andhra Pradesh & Telangana ──
+        { name: 'Ugādi', lunarMonth: 'Chaitra', tithi: 0, region: 'Karnataka / AP / Telangana', cat: 'regional', desc: 'Telugu-Kannada New Year' },
+        { name: 'Gaurī Habba', lunarMonth: 'Bhādrapada', tithi: 2, region: 'Karnataka', cat: 'regional', desc: 'Eve of Gaṇeśa Caturthī' },
+        { name: 'Mysore Dasara', lunarMonth: 'Āśvina', tithi: [0,1,2,3,4,5,6,7,8,9], region: 'Karnataka', cat: 'regional', desc: '10-day royal celebration' },
+        { name: 'Bathukamma', lunarMonth: 'Āśvina', tithi: [0,1,2,3,4,5,6,7,8], region: 'Telangana', cat: 'regional', desc: 'Flower festival for Goddess Gaurī' },
+        { name: 'Bonālu', lunarMonth: 'Āṣāḍha', tithi: 14, region: 'Telangana', cat: 'regional', desc: 'Offering to Goddess Mahākālī' },
+        { name: 'Brahmotsavam', lunarMonth: 'Āśvina', tithi: [0,1,2,3,4,5,6,7,8], region: 'Andhra Pradesh', cat: 'regional', desc: 'Tirupati 9-day grand celebration' },
+
+        // ── West Bengal & Odisha ──
+        { name: 'Durgā Pūjā', lunarMonth: 'Āśvina', tithi: [5,6,7,8,9], region: 'West Bengal', cat: 'regional', desc: 'The defining cultural festival' },
+        { name: 'Ratha Yātrā', lunarMonth: 'Āṣāḍha', tithi: 1, region: 'Odisha', cat: 'regional', desc: 'Chariot festival of Purī' },
+        { name: 'Kālī Pūjā', lunarMonth: 'Kārttika', tithi: 29, region: 'West Bengal', cat: 'regional', desc: 'Worship of Goddess Kālī' },
+        { name: 'Poilā Baiśākh', lunarMonth: 'Vaishākha', tithi: 0, region: 'West Bengal', cat: 'regional', desc: 'Bengali New Year' },
+        { name: 'Nuākhāī', lunarMonth: 'Bhādrapada', tithi: 4, region: 'Odisha', cat: 'regional', desc: 'Harvest festival of Western Odisha' },
+        { name: 'Rājā Parba', lunarMonth: 'Jyeṣṭha', tithi: [13,14,0], region: 'Odisha', cat: 'regional', desc: 'Celebrating Mother Earth\'s fertility' },
+
+        // ── Gujarat & Rajasthan ──
+        { name: 'Uttarāyaṇ Kite Festival', type: 'solar', sunLonDeg: 270, region: 'Gujarat', cat: 'regional', desc: 'International Kite Festival' },
+        { name: 'Navarātri Garba', lunarMonth: 'Āśvina', tithi: [0,1,2,3,4,5,6,7,8], region: 'Gujarat', cat: 'regional', desc: '9 nights of Garba and Daṇḍiyā' },
+        { name: 'Gaṅgaur', lunarMonth: 'Chaitra', tithi: 2, region: 'Rajasthan', cat: 'regional', desc: 'Dedicated to Gaurī and Śiva' },
+        { name: 'Tīj', lunarMonth: 'Śrāvaṇa', tithi: 2, region: 'Rajasthan', cat: 'regional', desc: 'Hariyālī Tīj — monsoon celebration' },
+        { name: 'Bestu Varas', lunarMonth: 'Kārttika', tithi: 0, region: 'Gujarat', cat: 'regional', desc: 'Gujarātī New Year (day after Dīvālī)' },
+
+        // ── North India (UP, Bihar, Punjab, Haryana) ──
+        { name: 'Lohrī', type: 'solar', sunLonDeg: 269, region: 'Punjab', cat: 'regional', desc: 'Winter solstice bonfire' },
+        { name: 'Baisākhī', type: 'solar', sunLonDeg: 0, region: 'Punjab / Haryana', cat: 'regional', desc: 'Solar New Year & harvest' },
+        { name: 'Laṭhmār Holī', lunarMonth: 'Phālguna', tithi: 14, region: 'Uttar Pradesh', cat: 'regional', desc: 'Traditional Holī of Braj' },
+        { name: 'Chhath Pūjā', lunarMonth: 'Kārttika', tithi: 5, region: 'Bihar / UP', cat: 'regional', desc: 'Vedic worship of Sūrya' },
+
+        // ── Monthly Recurring ──
+        { name: 'Vināyaka Caturthī', tithi: 3, region: 'Pan-India', cat: 'monthly', desc: 'Monthly Gaṇeśa worship' },
+        { name: 'Śukla Ekādaśī', tithi: 10, region: 'Pan-India', cat: 'monthly', desc: 'Viṣṇu fasting day' },
+        { name: 'Pūrṇimā', tithi: 14, region: 'Pan-India', cat: 'monthly', desc: 'Full Moon — Satyānārāyaṇa Pūjā' },
+        { name: 'Kṛṣṇa Ekādaśī', tithi: 25, region: 'Pan-India', cat: 'monthly', desc: 'Viṣṇu fasting day' },
+        { name: 'Śukla Pradoṣam', tithi: 12, region: 'Pan-India', cat: 'monthly', desc: 'Evening Śiva worship — waxing' },
+        { name: 'Kṛṣṇa Pradoṣam', tithi: 27, region: 'Pan-India', cat: 'monthly', desc: 'Evening Śiva worship — waning' },
+        { name: 'Māsika Śivarātri', tithi: 28, region: 'Pan-India', cat: 'monthly', desc: 'Monthly vigil of Śiva' },
+        { name: 'Amāvāsyā', tithi: 29, region: 'Pan-India', cat: 'monthly', desc: 'New Moon — Pitṛ Tarpaṇa' },
+
+        // ── Weekly Vrats ──
+        { name: 'Somavāra Vrata', type: 'weekly', weekday: 1, region: 'Pan-India', cat: 'weekly', desc: 'Śiva — Monday fast' },
+        { name: 'Maṅgalavāra Vrata', type: 'weekly', weekday: 2, region: 'Pan-India', cat: 'weekly', desc: 'Hanumān — Tuesday fast' },
+        { name: 'Guruvāra Vrata', type: 'weekly', weekday: 4, region: 'Pan-India', cat: 'weekly', desc: 'Viṣṇu / Bṛhaspati — Thursday fast' },
+        { name: 'Śanivāra Vrata', type: 'weekly', weekday: 6, region: 'Pan-India', cat: 'weekly', desc: 'Śani / Hanumān — Saturday fast' },
+    ] as const satisfies readonly SourceObservanceRecord[];
