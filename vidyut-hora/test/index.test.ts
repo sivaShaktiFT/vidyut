@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { aspectedSigns, calculateVimshottariDasha, civilDateToJulianDay, julianDayToCivilDate, karanaName, nakshatraIndex, normalizeDegrees, PanchangaCalculator, SOURCE_OBSERVANCES, sourceRamanAyanamsha, tithiIndex, vargaSign, zonedCivilDateToJulianDay } from "../src/index.js";
+import { aspectedSigns, calculateVimshottariDasha, civilDateToJulianDay, julianDayToCivilDate, karanaName, nakshatraIndex, normalizeDegrees, SOURCE_OBSERVANCES, sourceRamanAyanamsha, tithiIndex, vargaSign, zonedCivilDateToJulianDay } from "../src/index.js";
+import { createNodeCalculator } from "../src/node.js";
 
 describe("Panchanga primitives", () => {
   it("normalizes circular longitudes and derives limb indices", () => {
@@ -32,6 +33,20 @@ describe("Panchanga primitives", () => {
     const hour = 6 + 30 / 60 + 17 / 3600;
     expect(zonedCivilDateToJulianDay({ year: 2026, month: 8, day: 11 }, "Asia/Kolkata", hour)).toBeCloseTo(civilDateToJulianDay({ year: 2026, month: 8, day: 11 }, 5.5, hour), 10);
   });
+  it("rejects invalid civil input and contradictory timezone forms", async () => {
+    expect(() => civilDateToJulianDay({ year: 2026, month: 2, day: 29 }, 0)).toThrow(RangeError);
+    expect(() => zonedCivilDateToJulianDay({ year: 2026, month: 8, day: 11 }, "Asia/Kolkata", 24)).toThrow(RangeError);
+    const calculator = await createNodeCalculator({ offline: true });
+    expect(() => calculator.ephemeris(2026, 8, 24)).toThrow(RangeError);
+    expect(() => calculator.birthChart({ year: 1990, month: 1, day: 1, hour: 12, minute: 60 }, { latitude: 0, longitude: 0, utcOffset: 0 })).toThrow(RangeError);
+    expect(() => calculator.calculate({ year: 2026, month: 8, day: 11 }, { latitude: 0, longitude: 0, utcOffset: 0, timeZone: "Etc/UTC" })).toThrow(RangeError);
+  });
+  it("initializes Node calculators concurrently without replacing global fetch", async () => {
+    const originalFetch = globalThis.fetch;
+    const calculators = await Promise.all([createNodeCalculator({ offline: true }), createNodeCalculator({ offline: true })]);
+    expect(calculators).toHaveLength(2);
+    expect(globalThis.fetch).toBe(originalFetch);
+  });
   it("ships the permitted source observance catalogue", () => {
     expect(SOURCE_OBSERVANCES).toHaveLength(73);
     expect(SOURCE_OBSERVANCES.find((item) => item.name === "Dīpāvalī")?.tithi).toBe(29);
@@ -39,7 +54,7 @@ describe("Panchanga primitives", () => {
     expect(SOURCE_OBSERVANCES.find((item) => item.name === "Makara Saṅkrānti")?.type).toBe("solar");
   });
   it("matches the recorded source-compatible Bengaluru fixture", async () => {
-    const calculator = await PanchangaCalculator.create();
+    const calculator = await createNodeCalculator({ offline: true });
     const location = { latitude: 12.9716, longitude: 77.5946, utcOffset: 5.5 };
     const panchanga = calculator.calculate({ year: 2026, month: 8, day: 11 }, location);
     expect(panchanga.sunrise.toISOString()).toBe("2026-08-11T00:36:54.606Z");

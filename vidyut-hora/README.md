@@ -19,6 +19,20 @@ const panchanga = calculator.calculate(
 console.log(panchanga.tithi.name, panchanga.tithi.endsAt);
 ```
 
+In Node, use the Node-specific entry point. It loads the WASM asset without replacing
+global `fetch`. No external data is downloaded by default: configure a
+pinned/self-hosted ephemeris URL for production precision, or use the built-in
+fallback deliberately (the default, also expressible as `offline: true`).
+
+```ts
+import { createNodeCalculator } from "@vidyut-hora/panchanga/node";
+
+const calculator = await createNodeCalculator({
+  ephemerisUrl: "https://assets.example.com/sweph/2.6.9",
+  ephemerisFiles: ["sepl_18.se1", "semo_18.se1", "seas_18.se1"],
+});
+```
+
 ```ts
 const chart = calculator.birthChart(
   { year: 1990, month: 1, day: 1, hour: 12, minute: 0 },
@@ -33,13 +47,21 @@ const august = calculator.ephemeris(2026, 8);
 
 ## Source-compatible modules
 
-- `calculate(date, location)` returns five limbs, source-altitude rise/set calculation by default (including the source fallbacks), Hindu year, daily yogas, muhūrtas, and matched `SOURCE_OBSERVANCES`. A limb/timeline `bounded` flag identifies the source search-horizon fallback. Use `{ riseSetMethod: "swiss" }` to delegate rise/set entirely to Swiss Ephemeris.
+- `calculate(date, location)` returns five limbs, source-altitude rise/set calculation by default (including the source fallbacks), Hindu year, daily yogas, muhūrtas, and matched `SOURCE_OBSERVANCES`. `events` identifies whether each celestial event came from altitude crossing, Swiss Ephemeris, or an approximation. A limb/timeline `bounded` flag identifies the source search-horizon fallback. Use `{ riseSetMethod: "swiss" }` to delegate rise/set entirely to Swiss Ephemeris.
 - `monthlyPanchanga()`, `lunarMonthRange()`, and `timeline()` cover the Monthly/Daily Panchanga views. Lunar ranges use the deployed widget's 06:00 boundary and month-midpoint selection. `SOURCE_OBSERVANCES` carries the source type, aliases, and descriptions; `observances()` also accepts an application-owned catalogue.
 - `localEphemeris()` takes a local clock hour and a numeric offset or IANA zone, and adds ingress, dignity, and combustion annotations.
 - `birthChart()` and `atmakaraka()` deliberately use the Default Horoscopes/Atmakaraka source's linear B.V. Raman ayanamsha formula. `grahas()` and `ephemeris()` use Swiss Ephemeris Raman sidereal positions, matching the Ephemeris source.
 - `calculateVimshottariDasha()`, `aspectedSigns()`, `conjunctions()`, and `vargaSign()` expose the Default Horoscopes calculation rules without coupling them to a renderer.
 
-`CivilDate` is deliberately not a JavaScript `Date`: it represents the calendar date at the supplied location. Returned `Date` values are UTC instants; format them with a formatter configured for the location’s IANA time zone. `Location` accepts either a fixed `utcOffset` or an IANA `timeZone`; prefer `timeZone` where DST is possible. Named-zone conversion preserves birth seconds and rejects ambiguous/nonexistent DST civil times unless a fixed offset is supplied.
+`CivilDate` is deliberately not a JavaScript `Date`: it represents the calendar date at the supplied location. Returned `Date` values are UTC instants; use `formatInstantInTimeZone()` or an IANA-aware formatter to display them. `Location` accepts exactly one of a fixed `utcOffset` or an IANA `timeZone`; prefer `timeZone` where DST is possible. Named-zone conversion resolves the offset for the requested civil date, preserves birth seconds, and rejects ambiguous/nonexistent DST civil times.
+
+## Explicit non-goals
+
+This is a headless calculation core, not a full clone of the cited pages. It does not
+ship their rendered-output fixtures, location picker, source yoga catalogue, Dina
+Viṣaya, received-aspect/grouped-varga presentation helpers, instant birth-Panchanga
+panel, current-dasha selection UI, limb-progress display, or 60-day festival UI.
+Consumers can compose these presentation and catalogue features from the pure APIs.
 
 ## Learnings and provenance
 

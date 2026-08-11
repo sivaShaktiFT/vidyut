@@ -4,10 +4,12 @@ export { SOURCE_OBSERVANCES } from "./source-observances.js";
 
 /** A civil Gregorian date at the requested location (not a UTC timestamp). */
 export interface CivilDate { year: number; month: number; day: number }
-export interface Location { latitude: number; longitude: number; /** Offset from UTC in hours, e.g. 5.5 for IST. Required unless `timeZone` is supplied. */ utcOffset?: number; /** IANA timezone, e.g. `Asia/Kolkata`. Handles DST for the requested date. */ timeZone?: string }
+export interface Location { latitude: number; longitude: number; /** Offset from UTC in hours, e.g. 5.5 for IST. Required unless `timeZone` is supplied. Mutually exclusive with `timeZone`. */ utcOffset?: number; /** IANA timezone, e.g. `Asia/Kolkata`. Handles DST for the requested date. Mutually exclusive with `utcOffset`. */ timeZone?: string }
 export type Ayanamsha = "raman" | "lahiri";
-export interface PanchangaOptions { ayanamsha?: Ayanamsha }
+export interface PanchangaOptions { ayanamsha?: Ayanamsha; /** URL of the sweph-wasm asset. Use the `/node` entry point in Node. */ wasmUrl?: string; /** URL containing Swiss Ephemeris data files. Required for reproducible production deployments. */ ephemerisUrl?: string; /** Exact ephemeris files to load from `ephemerisUrl`. */ ephemerisFiles?: readonly string[]; /** Do not download ephemeris data. Calculations may use Swiss Ephemeris' built-in fallback. */ offline?: boolean }
 export interface CalculateOptions { riseSetMethod?: "source-altitude" | "swiss" }
+export type RiseSetMethod = "altitude" | "swiss" | "approximation";
+export interface CelestialEvent { instant: Date; method: RiseSetMethod }
 export interface Limb { index: number; name: string; endsAt: Date; /** True when no index crossing was bracketed before the source search horizon. */ bounded: boolean }
 export interface TimeRange { start: Date; end: Date }
 export interface DailyYoga { name: string; good: boolean; basis: "nakshatra" | "tithi"; endsAt: Date; bounded: boolean }
@@ -20,6 +22,8 @@ export interface Panchanga {
   sunset: Date;
   moonrise: Date | null;
   moonset: Date | null;
+  /** Provenance for rise/set values. The legacy date fields are retained for convenience. */
+  events: { sunrise: CelestialEvent; sunset: CelestialEvent; moonrise: CelestialEvent | null; moonset: CelestialEvent | null };
   vara: { index: number; name: string };
   paksha: "Shukla" | "Krishna";
   lunarMonth: string;
@@ -79,6 +83,7 @@ export interface TimelineSegment { limb: "tithi" | "nakshatra" | "yoga" | "karan
 
 /** Converts a location's civil date and clock time to Julian Day (UT). */
 export function civilDateToJulianDay(date: CivilDate, utcOffset: number, hour = 0): number {
+  assertCivilDate(date); assertHour(hour); assertFinite(utcOffset, "utcOffset");
   let y = date.year, m = date.month;
   const d = date.day + (hour - utcOffset) / 24;
   if (m <= 2) { y -= 1; m += 12; }
@@ -87,10 +92,17 @@ export function civilDateToJulianDay(date: CivilDate, utcOffset: number, hour = 
 }
 
 /** Converts Julian Day (UT) to a JavaScript instant. */
-export function julianDayToCivilDate(jd: number, utcOffset: number): Date {
-  void utcOffset; // retained for a symmetric, location-aware public API
+export function julianDayToCivilDate(jd: number, utcOffset?: number): Date {
+  assertFinite(jd, "julianDay");
+  void utcOffset; // @deprecated: this returns a UTC instant; use formatInstantInTimeZone for display.
   const unixMs = Math.round((jd - 2440587.5) * DAY_MS);
   return new Date(unixMs);
+}
+
+/** Formats an instant as civil date/time fields in an IANA timezone. */
+export function formatInstantInTimeZone(instant: Date, timeZone: string): Intl.DateTimeFormatPart[] {
+  if (!(instant instanceof Date) || Number.isNaN(instant.getTime())) throw new RangeError("instant must be a valid Date.");
+  return new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23" }).formatToParts(instant);
 }
 
 export function normalizeDegrees(value: number): number { return ((value % 360) + 360) % 360; }
@@ -109,6 +121,7 @@ export function sourceRamanAyanamsha(julianDay: number): number { return ((julia
 
 /** Resolves a local civil date/time to JD using an IANA timezone, including daylight-saving changes. */
 export function zonedCivilDateToJulianDay(date: CivilDate, timeZone: string, hour = 0): number {
+  assertCivilDate(date); assertHour(hour); if (!timeZone) throw new RangeError("timeZone is required.");
   const local = new Date(Date.UTC(date.year, date.month - 1, date.day) + Math.round(hour * 3600) * 1000);
   const target = [local.getUTCFullYear(), local.getUTCMonth() + 1, local.getUTCDate(), local.getUTCHours(), local.getUTCMinutes(), local.getUTCSeconds()].join(":");
   const base = local.getTime();
@@ -176,40 +189,44 @@ export class PanchangaCalculator {
 
   /** Creates a calculator in browser or Node and loads the required Swiss Ephemeris assets. */
   static async create(options: PanchangaOptions = {}): Promise<PanchangaCalculator> {
-    const swe = await initialiseSwissEphemeris();
-    await swe.swe_set_ephe_path();
+    const swe = await SwissEPH.init(options.wasmUrl);
+    if (!options.offline && (options.ephemerisUrl || options.ephemerisFiles)) {
+      if (!options.ephemerisUrl) throw new RangeError("ephemerisUrl is required when ephemerisFiles are specified.");
+      await swe.swe_set_ephe_path(options.ephemerisUrl, options.ephemerisFiles ? [...options.ephemerisFiles] : undefined);
+    }
     return new PanchangaCalculator(swe, options.ayanamsha ?? "raman");
   }
 
   /** Calculates source-compatible daily Panchanga data at local sunrise. */
   calculate(date: CivilDate, location: Location, options: CalculateOptions = {}): Panchanga {
-    this.assertLocation(location);
-    const offset = this.offset(location);
+    assertCivilDate(date); this.assertLocation(location);
+    const offset = this.offset(location, date);
     const start = this.localJulianDay(date, location);
     const sourceCompatible = options.riseSetMethod !== "swiss";
-    const sunrise = this.riseSet(start, this.swe.SE_SUN, location, false, sourceCompatible);
-    const sunset = this.riseSet(start, this.swe.SE_SUN, location, true, sourceCompatible);
+    const sunrise = this.riseSet(start, this.swe.SE_SUN, location, false, sourceCompatible, offset);
+    const sunset = this.riseSet(start, this.swe.SE_SUN, location, true, sourceCompatible, offset);
     if (sunrise === null || sunset === null) throw new RangeError("Sunrise or sunset does not occur on this civil date at this location.");
-    const moonrise = this.riseSet(start, this.swe.SE_MOON, location, false, sourceCompatible);
-    const moonset = this.riseSet(start, this.swe.SE_MOON, location, true, sourceCompatible);
-    const atSunrise = this.longitudes(sunrise);
+    const moonrise = this.riseSet(start, this.swe.SE_MOON, location, false, sourceCompatible, offset);
+    const moonset = this.riseSet(start, this.swe.SE_MOON, location, true, sourceCompatible, offset);
+    const atSunrise = this.longitudes(sunrise.jd);
     const ti = tithiIndex(atSunrise.moon, atSunrise.sun);
     const nk = nakshatraIndex(atSunrise.moon);
     const yo = yogaIndex(atSunrise.moon, atSunrise.sun);
     const ka = karanaIndex(atSunrise.moon, atSunrise.sun);
     const weekday = new Date(Date.UTC(date.year, date.month - 1, date.day)).getUTCDay();
-    const end = (index: number, span: number, fn: (p: Longitudes) => number) => this.findTransition(sunrise, sunrise + span, index, fn);
+    const end = (index: number, span: number, fn: (p: Longitudes) => number) => this.findTransition(sunrise.jd, sunrise.jd + span, index, fn);
     const tithiEnd = end(ti, 1.5, p => tithiIndex(p.moon, p.sun)), nakEnd = end(nk, 1.5, p => nakshatraIndex(p.moon)), yogaEnd = end(yo, 1.5, p => yogaIndex(p.moon, p.sun)), karanaEnd = end(ka, .75, p => karanaIndex(p.moon, p.sun));
     const toDate = (jd: number) => julianDayToCivilDate(jd, offset);
     const dailyYogas = this.dailyYogas(weekday, nk, ti, nakEnd, tithiEnd, toDate);
     const panchanga: Panchanga = {
       date, location,
-      sunrise: toDate(sunrise), sunset: toDate(sunset), moonrise: moonrise === null ? null : toDate(moonrise), moonset: moonset === null ? null : toDate(moonset),
+      sunrise: toDate(sunrise.jd), sunset: toDate(sunset.jd), moonrise: moonrise === null ? null : toDate(moonrise.jd), moonset: moonset === null ? null : toDate(moonset.jd),
+      events: { sunrise: { instant: toDate(sunrise.jd), method: sunrise.method }, sunset: { instant: toDate(sunset.jd), method: sunset.method }, moonrise: moonrise && { instant: toDate(moonrise.jd), method: moonrise.method }, moonset: moonset && { instant: toDate(moonset.jd), method: moonset.method } },
       vara: { index: weekday, name: VARAS[weekday] }, paksha: ti < 15 ? "Shukla" : "Krishna",
       lunarMonth: LUNAR_MONTHS[(Math.floor(atSunrise.sun / 30) + 1) % 12],
       tithi: { index: ti, name: TITHIS[ti], endsAt: toDate(tithiEnd.jd), bounded: tithiEnd.bounded }, nakshatra: { index: nk, name: NAKSHATRAS[nk], pada: Math.floor((atSunrise.moon % (360 / 27)) / (360 / 108)) + 1, endsAt: toDate(nakEnd.jd), bounded: nakEnd.bounded }, yoga: { index: yo, name: YOGAS[yo], endsAt: toDate(yogaEnd.jd), bounded: yogaEnd.bounded }, karana: { index: ka, name: karanaName(ka), endsAt: toDate(karanaEnd.jd), bounded: karanaEnd.bounded },
       hinduYear: this.hinduYear(date, LUNAR_MONTHS[(Math.floor(atSunrise.sun / 30) + 1) % 12]), dailyYogas,
-      muhurtas: this.muhurtas(toDate(sunrise), toDate(sunset), weekday), observances: []
+      muhurtas: this.muhurtas(toDate(sunrise.jd), toDate(sunset.jd), weekday), observances: []
     };
     panchanga.observances = this.observances(panchanga, SOURCE_OBSERVANCES);
     return panchanga;
@@ -217,12 +234,13 @@ export class PanchangaCalculator {
 
   /** Gregorian-month table used by the source Monthly Panchanga view. */
   monthlyPanchanga(year: number, month: number, location: Location, options: CalculateOptions = {}): Panchanga[] {
-    if (!Number.isInteger(month) || month < 1 || month > 12) throw new RangeError("month must be 1 through 12.");
+    assertYear(year); if (!Number.isInteger(month) || month < 1 || month > 12) throw new RangeError("month must be 1 through 12.");
     const days = new Date(Date.UTC(year, month, 0)).getUTCDate(); return Array.from({ length: days }, (_, index) => this.calculate({ year, month, day: index + 1 }, location, options));
   }
 
   /** Source monthly-view lunar-date range, bounded by Amavasya (amanta) or Purnima (purnimanta) onset. */
   lunarMonthRange(anchor: CivilDate, location: Location, mode: "amanta" | "purnimanta" = "amanta"): LunarMonthRange {
+    assertCivilDate(anchor); this.assertLocation(location);
     const target = mode === "amanta" ? 29 : 14, candidates = Array.from({ length: 71 }, (_, i) => shiftDate({ year: anchor.year, month: anchor.month, day: 1 }, i - 20)); let prior: number | undefined; const boundaries: CivilDate[] = [];
     for (const date of candidates) { const atSix = this.longitudes(this.localJulianDay(date, location, 6)), index = tithiIndex(atSix.moon, atSix.sun); if (prior === target && index !== target) boundaries.push(date); prior = index; }
     if (boundaries.length < 2) throw new RangeError("Could not find two lunar-month boundaries in the source search window.");
@@ -233,7 +251,7 @@ export class PanchangaCalculator {
 
   /** Sunrise-to-next-sunrise limb timeline used by the daily Panchanga widget. */
   timeline(date: CivilDate, location: Location, options: CalculateOptions = {}): TimelineSegment[] {
-    const day = this.calculate(date, location, options), offset = this.offset(location), start = day.sunrise.getTime() / DAY_MS + 2440587.5, end = start + 1, specs: Array<[TimelineSegment["limb"], (p: Longitudes) => number, readonly string[], number]> = [["tithi", p => tithiIndex(p.moon, p.sun), TITHIS, 1.5], ["nakshatra", p => nakshatraIndex(p.moon), NAKSHATRAS, 1.5], ["yoga", p => yogaIndex(p.moon, p.sun), YOGAS, 1.5], ["karana", p => karanaIndex(p.moon, p.sun), KARANAS, .75]];
+    const day = this.calculate(date, location, options), offset = this.offset(location, date), start = day.sunrise.getTime() / DAY_MS + 2440587.5, end = start + 1, specs: Array<[TimelineSegment["limb"], (p: Longitudes) => number, readonly string[], number]> = [["tithi", p => tithiIndex(p.moon, p.sun), TITHIS, 1.5], ["nakshatra", p => nakshatraIndex(p.moon), NAKSHATRAS, 1.5], ["yoga", p => yogaIndex(p.moon, p.sun), YOGAS, 1.5], ["karana", p => karanaIndex(p.moon, p.sun), KARANAS, .75]];
     return specs.flatMap(([limb, getIndex, names, span]) => { const result: TimelineSegment[] = []; let current = start, index = getIndex(this.longitudes(current)); while (current < end && result.length < 20) { const found = this.findTransition(current, current + span, index, getIndex), transition = Math.min(found.jd, end); result.push({ limb, index, name: limb === "karana" ? karanaName(index) : names[index], start: julianDayToCivilDate(current, offset), end: julianDayToCivilDate(transition, offset), bounded: found.bounded }); if (transition >= end) break; current = transition; index = getIndex(this.longitudes(current + .000001)); } return result; });
   }
 
@@ -254,20 +272,20 @@ export class PanchangaCalculator {
 
   /** Daily sidereal ephemeris for a Gregorian month, sampled at a UTC hour. */
   ephemeris(year: number, month: number, hourUtc = 0): Array<{ date: CivilDate; julianDay: number; grahas: GrahaPosition[] }> {
-    if (!Number.isInteger(month) || month < 1 || month > 12) throw new RangeError("month must be 1 through 12.");
+    assertYear(year); if (!Number.isInteger(month) || month < 1 || month > 12) throw new RangeError("month must be 1 through 12."); assertHour(hourUtc);
     const count = new Date(Date.UTC(year, month, 0)).getUTCDate();
     return Array.from({ length: count }, (_, i) => { const date = { year, month, day: i + 1 }; const julianDay = civilDateToJulianDay(date, 0, hourUtc); return { date, julianDay, grahas: this.grahas(julianDay, "ephemeris") }; });
   }
 
   /** Source-style ephemeris sampled at a local clock hour, with prior-day ingress metadata. */
   localEphemeris(year: number, month: number, localHour: number, location: Pick<Location, "utcOffset" | "timeZone">): Array<{ date: CivilDate; julianDay: number; grahas: Array<GrahaPosition & { ingress: boolean; dignity: string; combust: boolean }> }> {
-    const count = new Date(Date.UTC(year, month, 0)).getUTCDate(); const prior = new Date(Date.UTC(year, month - 1, 0)); let previous = this.grahas(this.localJulianDay({ year: prior.getUTCFullYear(), month: prior.getUTCMonth() + 1, day: prior.getUTCDate() }, location, localHour), "ephemeris");
+    assertYear(year); if (!Number.isInteger(month) || month < 1 || month > 12) throw new RangeError("month must be 1 through 12."); assertHour(localHour); this.assertLocation({ latitude: 0, longitude: 0, ...location }); const count = new Date(Date.UTC(year, month, 0)).getUTCDate(); const prior = new Date(Date.UTC(year, month - 1, 0)); let previous = this.grahas(this.localJulianDay({ year: prior.getUTCFullYear(), month: prior.getUTCMonth() + 1, day: prior.getUTCDate() }, location, localHour), "ephemeris");
     return Array.from({ length: count }, (_, i) => { const date = { year, month, day: i + 1 }, julianDay = this.localJulianDay(date, location, localHour), grahas = this.grahas(julianDay, "ephemeris"); const sun = grahas[0].longitude; const annotated = grahas.map((p, index) => ({ ...p, ingress: p.sign !== previous[index].sign, dignity: dignity(p.name, p.sign, p.degreesInSign), combust: combust(p.name, p.longitude, sun) })); previous = grahas; return { date, julianDay, grahas: annotated }; });
   }
 
   /** Computes a natal chart's grahas and sidereal ascendant. */
   birthChart(birth: BirthTime, location: Location): BirthChart {
-    this.assertLocation(location);
+    assertBirthTime(birth); this.assertLocation(location);
     const hour = birth.hour + (birth.minute ?? 0) / 60 + (birth.second ?? 0) / 3600;
     const julianDay = this.localJulianDay(birth, location, hour), ayanamsha = sourceRamanAyanamsha(julianDay);
     const ascendant = normalizeDegrees(this.swe.swe_houses(julianDay, location.latitude, location.longitude, "W").ascmc[0] - ayanamsha);
@@ -302,17 +320,17 @@ export class PanchangaCalculator {
     const lon = normalizeDegrees(longitude), sign = signIndex(lon), within = lon % 30, nak = nakshatraIndex(lon);
     return { name: name as GrahaPosition["name"], longitude: lon, speed, retrograde, sign, signName: RASHIS[sign], degreesInSign: within, nakshatra: NAKSHATRAS[nak], pada: Math.floor((lon % (360 / 27)) / (360 / 108)) + 1 };
   }
-  private riseSet(start: number, body: number, location: Location, set: boolean, sourceCompatible: boolean): number | null {
+  private riseSet(start: number, body: number, location: Location, set: boolean, sourceCompatible: boolean, offset: number): { jd: number; method: RiseSetMethod } | null {
     if (sourceCompatible) {
       const horizon = body === this.swe.SE_SUN ? -0.8333 : .125, samples = 48;
       let prior = this.altitude(start, body, location), priorJd = start;
-      for (let i = 1; i <= samples; i += 1) { const jd = start + i / samples, current = this.altitude(jd, body, location); if ((prior < horizon) !== (current < horizon)) { const rising = prior < horizon; if (rising !== set) return this.altitudeCrossing(priorJd, jd, body, location, horizon); } prior = current; priorJd = jd; }
+      for (let i = 1; i <= samples; i += 1) { const jd = start + i / samples, current = this.altitude(jd, body, location); if ((prior < horizon) !== (current < horizon)) { const rising = prior < horizon; if (rising !== set) return { jd: this.altitudeCrossing(priorJd, jd, body, location, horizon), method: "altitude" }; } prior = current; priorJd = jd; }
     }
     try {
       const result = this.swe.swe_rise_trans(start, body, null, 0, set ? this.swe.SE_CALC_SET : this.swe.SE_CALC_RISE, [location.longitude, location.latitude, 0], 0, 0);
-      if (Number.isFinite(result) && result >= start && result < start + 1) return result;
+      if (Number.isFinite(result) && result >= start && result < start + 1) return { jd: result, method: "swiss" };
     } catch { /* source continues with an approximation */ }
-    return sourceCompatible ? this.riseSetFallback(start, body, set, location) : null;
+    return sourceCompatible ? { jd: this.riseSetFallback(start, body, set, location, offset), method: "approximation" } : null;
   }
   private altitudeCrossing(lo: number, hi: number, body: number, location: Location, horizon: number): number { const below = this.altitude(lo, body, location) < horizon; for (let i = 0; i < 40; i += 1) { const mid = (lo + hi) / 2; if ((this.altitude(mid, body, location) < horizon) === below) lo = mid; else hi = mid; } return (lo + hi) / 2; }
   private altitude(jd: number, body: number, location: Location): number {
@@ -321,16 +339,16 @@ export class PanchangaCalculator {
     return Math.asin(Math.sin(lat) * Math.sin(dec) + Math.cos(lat) * Math.cos(dec) * Math.cos(ha)) * 180 / Math.PI;
   }
   /** Final deployed-widget fallback for dates without a detected horizon crossing. */
-  private riseSetFallback(start: number, body: number, set: boolean, location: Location): number {
+  private riseSetFallback(start: number, body: number, set: boolean, location: Location, offset: number): number {
     if (body === this.swe.SE_SUN) {
       const date = new Date((start - 2440587.5) * DAY_MS), yearStart = Date.UTC(date.getUTCFullYear(), 0, 0), dayOfYear = Math.floor((date.getTime() - yearStart) / DAY_MS), lat = location.latitude * Math.PI / 180;
       const declination = -23.45 * Math.cos(2 * Math.PI * (dayOfYear + 10) / 365) * Math.PI / 180;
       const hourAngle = Math.acos(Math.max(-1, Math.min(1, -Math.tan(lat) * Math.tan(declination)))) * 180 / Math.PI;
       const b = 2 * Math.PI * (dayOfYear - 81) / 365, equationOfTime = (9.87 * Math.sin(2 * b) - 7.53 * Math.cos(b) - 1.5 * Math.sin(b)) / 60;
       const hourUtc = 12 - location.longitude / 15 - equationOfTime + (set ? hourAngle : -hourAngle) / 15;
-      return start + (hourUtc + this.offset(location)) / 24;
+      return start + (hourUtc + offset) / 24;
     }
-    const sunrise = this.riseSetFallback(start, this.swe.SE_SUN, false, location), positions = this.longitudes(sunrise), elongation = normalizeDegrees(positions.moon - positions.sun);
+    const sunrise = this.riseSetFallback(start, this.swe.SE_SUN, false, location, offset), positions = this.longitudes(sunrise), elongation = normalizeDegrees(positions.moon - positions.sun);
     return sunrise + (elongation / 360) * 24.8 / 24 + (set ? .5 : 0);
   }
   private findTransition(start: number, end: number, current: number, index: (p: Longitudes) => number): { jd: number; bounded: boolean } {
@@ -339,29 +357,23 @@ export class PanchangaCalculator {
     for (let i = 0; i < 28; i += 1) { const mid = (lo + hi) / 2; if (index(this.longitudes(mid)) === current) lo = mid; else hi = mid; }
     return { jd: hi, bounded: false };
   }
-  private localJulianDay(date: CivilDate, location: Pick<Location, "utcOffset" | "timeZone">, hour = 0): number { return location.timeZone ? zonedCivilDateToJulianDay(date, location.timeZone, hour) : civilDateToJulianDay(date, this.offset(location), hour); }
-  private offset(location: Pick<Location, "utcOffset" | "timeZone">): number { if (Number.isFinite(location.utcOffset)) return location.utcOffset!; if (!location.timeZone) throw new RangeError("Specify utcOffset or timeZone."); const parts = new Intl.DateTimeFormat("en-US", { timeZone: location.timeZone, timeZoneName: "longOffset" }).formatToParts(new Date()); const value = parts.find((p) => p.type === "timeZoneName")?.value ?? ""; const match = value.match(/GMT([+-])(\d{2}):?(\d{2})/); if (!match) throw new RangeError(`Could not resolve offset for ${location.timeZone}.`); return (match[1] === "+" ? 1 : -1) * (Number(match[2]) + Number(match[3]) / 60); }
+  private localJulianDay(date: CivilDate, location: Pick<Location, "utcOffset" | "timeZone">, hour = 0): number { assertCivilDate(date); assertHour(hour); return location.timeZone ? zonedCivilDateToJulianDay(date, location.timeZone, hour) : civilDateToJulianDay(date, this.offset(location, date, hour), hour); }
+  private offset(location: Pick<Location, "utcOffset" | "timeZone">, date?: CivilDate, hour = 0): number { if (Number.isFinite(location.utcOffset)) return location.utcOffset!; if (!location.timeZone || !date) throw new RangeError("A civil date and either utcOffset or timeZone are required."); return (civilDateToJulianDay(date, 0, hour) - zonedCivilDateToJulianDay(date, location.timeZone, hour)) * 24; }
   private hinduYear(date: CivilDate, lunarMonth: string): HinduYear { const base = date.month < 3 || (date.month === 3 && ["Margashirsha", "Pausha", "Magha", "Phalguna"].includes(lunarMonth)) ? date.year - 1 : date.year; return { samvatsara: SAMVATSARAS[((base - 1987) % 60 + 60) % 60], vikramaSamvat: base + 57, shakaSamvat: base - 78, kaliYuga: base + 3101 }; }
   private dailyYogas(weekday: number, nakshatra: number, tithi: number, nakEnd: { jd: number; bounded: boolean }, tithiEnd: { jd: number; bounded: boolean }, toDate: (jd: number) => Date): DailyYoga[] { return DAILY_YOGA_RULES.flatMap(([name, good, basis, values]) => { const end = basis === "nakshatra" ? nakEnd : tithiEnd; return values[weekday].includes(basis === "nakshatra" ? nakshatra : tithi % 15 + 1) ? [{ name, good, basis, endsAt: toDate(end.jd), bounded: end.bounded }] : []; }); }
   private muhurtas(sunrise: Date, sunset: Date, weekday: number): Muhurtas { const duration = sunset.getTime() - sunrise.getTime(), eighth = duration / 8, segment = (index: number): TimeRange => ({ start: new Date(sunrise.getTime() + index * eighth), end: new Date(sunrise.getTime() + (index + 1) * eighth) }), range = (start: number, end: number): TimeRange => ({ start: new Date(start), end: new Date(end) }), noon = (sunrise.getTime() + sunset.getTime()) / 2, fifteenth = duration / 15, d1 = [10,6,2,5,9,1,3][weekday], d2 = [14,8,4,7,13,3,5][weekday]; return { rahuKala: segment([7,1,6,4,5,3,2][weekday]), yamaganda: segment([4,3,2,1,0,6,5][weekday]), gulika: segment([6,5,4,3,2,1,0][weekday]), abhijit: range(noon - 28 * 60000, noon + 28 * 60000), brahma: range(sunrise.getTime() - 96 * 60000, sunrise.getTime() - 48 * 60000), durMuhurta1: range(sunrise.getTime() + d1 * fifteenth, sunrise.getTime() + (d1 + 1) * fifteenth), durMuhurta2: range(sunrise.getTime() + d2 * fifteenth, sunrise.getTime() + (d2 + 1) * fifteenth) }; }
   private assertLocation(location: Location): void {
     if (!Number.isFinite(location.latitude) || location.latitude < -90 || location.latitude > 90 || !Number.isFinite(location.longitude) || location.longitude < -180 || location.longitude > 180 || (!Number.isFinite(location.utcOffset) && !location.timeZone)) throw new RangeError("Location must contain valid latitude, longitude, and either utcOffset or timeZone.");
+    if (location.timeZone && location.utcOffset !== undefined) throw new RangeError("Specify either utcOffset or timeZone, not both.");
   }
 }
 interface Longitudes { sun: number; moon: number }
 
-/** Makes sweph-wasm's file URL work in Node while leaving browser fetching untouched. */
-async function initialiseSwissEphemeris(): Promise<SwissEPH> {
-  const processLike = (globalThis as typeof globalThis & { process?: { versions?: { node?: string } } }).process;
-  if (!processLike?.versions?.node) return SwissEPH.init();
-  const { readFile } = await import("node:fs/promises"), originalFetch = globalThis.fetch;
-  globalThis.fetch = async (input, init) => {
-    const url = input instanceof URL ? input : new URL(typeof input === "string" ? input : input.url);
-    if (url.protocol === "file:") return new Response(await readFile(url));
-    return originalFetch(input, init);
-  };
-  try { return await SwissEPH.init(); } finally { globalThis.fetch = originalFetch; }
-}
+function assertFinite(value: number, name: string): void { if (!Number.isFinite(value)) throw new RangeError(`${name} must be finite.`); }
+function assertYear(year: number): void { if (!Number.isInteger(year) || year < 1 || year > 9999) throw new RangeError("year must be an integer from 1 through 9999."); }
+function assertCivilDate(date: CivilDate): void { assertYear(date.year); if (!Number.isInteger(date.month) || date.month < 1 || date.month > 12 || !Number.isInteger(date.day) || date.day < 1 || date.day > new Date(Date.UTC(date.year, date.month, 0)).getUTCDate()) throw new RangeError("date must be a valid Gregorian civil date."); }
+function assertHour(hour: number): void { if (!Number.isFinite(hour) || hour < 0 || hour >= 24) throw new RangeError("hour must be a finite value from 0 (inclusive) to 24 (exclusive)."); }
+function assertBirthTime(birth: BirthTime): void { assertCivilDate(birth); if (!Number.isInteger(birth.hour) || birth.hour < 0 || birth.hour > 23) throw new RangeError("BirthTime.hour must be an integer from 0 through 23."); if (birth.minute !== undefined && (!Number.isInteger(birth.minute) || birth.minute < 0 || birth.minute > 59)) throw new RangeError("BirthTime.minute must be an integer from 0 through 59."); if (birth.second !== undefined && (!Number.isInteger(birth.second) || birth.second < 0 || birth.second >= 60)) throw new RangeError("BirthTime.second must be an integer from 0 through 59."); }
 
 const DIGNITIES: Record<string, [number, number, number[], number, number, number]> = { Sun:[0,6,[4],4,0,20], Moon:[1,7,[3],1,0,30], Mercury:[5,11,[2,5],5,16,20], Venus:[11,5,[1,6],6,0,15], Mars:[9,3,[0,7],0,0,12], Jupiter:[3,9,[8,11],8,0,10], Saturn:[6,0,[9,10],10,0,20], Rahu:[2,8,[],-1,0,0], Ketu:[8,2,[],-1,0,0] };
 function dignity(name: string, sign: number, degrees: number): string { const [exalt, debil, own, mt, from, to] = DIGNITIES[name] ?? [-1,-1,[],-1,0,0]; return sign === exalt ? "exalted" : sign === debil ? "debilitated" : sign === mt && degrees >= from && degrees < to ? "moolatrikona" : own.includes(sign) ? "own-sign" : "normal"; }
