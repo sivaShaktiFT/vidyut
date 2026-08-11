@@ -14,8 +14,9 @@ that exports a single WebAssembly API over Vidyut's standalone web-capable crate
 
 The wrapper returns plain JavaScript objects for results rather than exposing Rust-owned objects.
 That keeps the API easy to serialize, render, cache, and use in React state. A
-`typescript_custom_section` adds result and input interfaces to wasm-bindgen's generated `.d.ts`
-file, which documents the JSON-like values passed across the boundary.
+The published package exposes a curated JavaScript facade and a hand-authored declaration file.
+This keeps legacy wasm-bindgen internals out of the public contract and makes method parameters
+and return values type-check as the named interfaces.
 
 ## Important design choices
 
@@ -24,11 +25,19 @@ file, which documents the JSON-like values passed across the boundary.
   transliterate at input and output boundaries.
 - A `Chandas` instance takes TSV instead of implicitly fetching `meters.tsv`. WASM cannot make
   assumptions about hosting or caching; applications can bundle, fetch, or subset data themselves.
-- `Sandhi` now exposes reverse analysis as well as joining. `splitAll` intentionally returns all
-  candidates; callers should use `isValid` and lexical context to rank them.
+- `Sandhi` now exposes reverse analysis as well as joining. `splitAll` follows the native splitter:
+  it stops at the first non-SLP1 character, so no candidate crosses whitespace or punctuation.
+  Callers should use `isValid` and lexical context to rank candidates.
 - `Vyakarana` retains Vidyut's mature object contract rather than duplicating its very large enum
-  vocabulary in JavaScript. The typed declarations describe object shape; enum spellings remain
-  the source-of-truth Rust names in `vidyut-prakriya/src/args.rs`.
+  vocabulary in JavaScript. Grammar enum values are the source-of-truth Rust names as strings;
+  numeric legacy WASM enums are deliberately not public API.
+- Grammar input is validated at both boundaries. TypeScript models `upapada` as all-or-nothing and
+  `PratipadikaArgs` as exactly one variant; Rust revalidates untyped JavaScript input. Conversion
+  failures throw recoverable `Error`s, never panic, log-only, return a placeholder form, or reuse
+  `[]` (which means a valid derivation produced no forms).
+- The release profile is set at the workspace root, where Cargo actually applies it. Browser
+  package builds optimize for size without release debug information or incremental artifacts.
+- npm metadata and the packaged `LICENSE-MIT` now use the same MIT license.
 
 ## Scope boundary
 
@@ -40,11 +49,13 @@ without opaque local files.
 
 ## Verification status
 
-The package has been compiled as both `wasm-pack --target web` and `wasm-pack --target bundler`.
-Native tests cover transliteration, metre identification, and forward/reverse sandhi. A Node/WASM
-smoke test exercises the generated module end to end: transliteration, scheme detection, metre
-classification, sandhi joins/splits, a `Bhvadi` present-tense derivation, and invalid derivation
-arguments. The latter now returns `[]` instead of panicking.
+The package is compiled as both `wasm-pack --target web` and `wasm-pack --target bundler`.
+Native tests cover transliteration, metre identification, and forward/reverse sandhi. WASM tests
+cover the browser exports. The TypeScript contract includes positive inference checks and negative
+`@ts-expect-error` cases for partial `upapada` and multi-variant `PratipadikaArgs`. Runtime
+validation must additionally verify malformed grammar objects reject while a following valid call
+still succeeds, and that `splitAll("ca iti")` never returns a cross-chunk split. The default web
+artifact must be initialized with `await init()`; the React guide uses the bundler artifact.
 
 `tests/typecheck.ts` type-checks the generated declaration file with TypeScript. A full real-browser
 run remains useful before a release: `wasm-pack test --headless --chrome`.

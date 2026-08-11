@@ -1,10 +1,10 @@
 [package]
 name = "bindings-ts"
-version = "0.1.0"
-authors = ["Ambuda <ambuda.library@gmail.com>"]
+version = "0.1.2"
+authors = ["Ambuda <ambuda.library@gmail.com>", "Ronit<ronit@siva.sh>"]
 description = "WebAssembly and TypeScript bindings for Vidyut"
 license = "MIT"
-repository = "https://github.com/ambuda-org/vidyut"
+repository = "https://github.com/sivashaktift/vidyut"
 edition = "2021"
 
 [lib]
@@ -30,7 +30,3 @@ console_error_panic_hook = { version = "0.1.7", optional = true }
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.34"
-
-[profile.release]
-# Tell `rustc` to optimize for small code size.
-opt-level = "s"

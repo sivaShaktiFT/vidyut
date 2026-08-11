@@ -58,7 +58,7 @@ export interface KrdantaArgs {
   unadi?: string;
   lakara?: string;
   prayoga?: string;
-  upapada?: { stem?: string; linga?: string; vibhakti?: string; vacana?: string };
+  upapada?: { stem: string; linga: string; vibhakti: string; vacana: string };
 }
 export type PratipadikaArgs =
   | { basic: string; nyap?: never; krdanta?: never; taddhitanta?: never }
@@ -332,14 +332,16 @@ impl Sandhi {
         serde_wasm_bindgen::to_value(&splits).map_err(|error| JsError::new(&error.to_string()))
     }
 
-    /// Return all possible splits at every SLP1 boundary.
+    /// Return all possible splits in the first contiguous SLP1 chunk.
     #[wasm_bindgen(js_name = splitAll)]
     pub fn split_all(&self, input: &str) -> Result<JsValue, JsError> {
         if !input.is_ascii() {
             return Err(JsError::new("Sandhi accepts SLP1 (ASCII) input only"));
         }
-        let splits: Vec<WebSplit> = (0..input.len())
-            .flat_map(|index| self.splitter.split_at(input, index))
+        let splits: Vec<WebSplit> = self
+            .splitter
+            .split_all(input)
+            .into_iter()
             .map(web_split)
             .collect();
         serde_wasm_bindgen::to_value(&splits).map_err(|error| JsError::new(&error.to_string()))
@@ -367,37 +369,37 @@ impl Vyakarana {
 
     /// Derive verbal roots.
     #[wasm_bindgen(js_name = deriveDhatus)]
-    pub fn derive_dhatus(&self, args: JsValue) -> JsValue {
+    pub fn derive_dhatus(&self, args: JsValue) -> Result<JsValue, JsError> {
         self.inner.deriveDhatus(args)
     }
 
     /// Derive nominal forms.
     #[wasm_bindgen(js_name = deriveSubantas)]
-    pub fn derive_subantas(&self, args: JsValue) -> JsValue {
+    pub fn derive_subantas(&self, args: JsValue) -> Result<JsValue, JsError> {
         self.inner.deriveSubantas(args)
     }
 
     /// Derive finite verbal forms.
     #[wasm_bindgen(js_name = deriveTinantas)]
-    pub fn derive_tinantas(&self, args: JsValue) -> JsValue {
+    pub fn derive_tinantas(&self, args: JsValue) -> Result<JsValue, JsError> {
         self.inner.deriveTinantas(args)
     }
 
     /// Derive primary derivatives.
     #[wasm_bindgen(js_name = deriveKrdantas)]
-    pub fn derive_krdantas(&self, args: JsValue) -> JsValue {
+    pub fn derive_krdantas(&self, args: JsValue) -> Result<JsValue, JsError> {
         self.inner.deriveKrdantas(args)
     }
 
     /// Derive secondary derivatives.
     #[wasm_bindgen(js_name = deriveTaddhitantas)]
-    pub fn derive_taddhitantas(&self, args: JsValue) -> JsValue {
+    pub fn derive_taddhitantas(&self, args: JsValue) -> Result<JsValue, JsError> {
         self.inner.deriveTaddhitantas(args)
     }
 
     /// Derive feminine forms.
     #[wasm_bindgen(js_name = deriveStryantas)]
-    pub fn derive_stryantas(&self, args: JsValue) -> JsValue {
+    pub fn derive_stryantas(&self, args: JsValue) -> Result<JsValue, JsError> {
         self.inner.deriveStryantas(args)
     }
 }
@@ -423,6 +425,16 @@ mod tests {
             .split_at("ceti", 1)
             .iter()
             .any(|split| split.first() == "ca" && split.second() == "iti"));
+    }
+
+    #[test]
+    fn split_all_stops_at_a_chunk_boundary() {
+        let sandhi = Sandhi::new();
+        assert!(sandhi
+            .splitter
+            .split_all("ca iti")
+            .iter()
+            .all(|split| !split.first().contains(char::is_whitespace)));
     }
 
     #[test]

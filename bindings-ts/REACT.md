@@ -2,7 +2,7 @@
 
 This guide separates the two kinds of Vidyut functionality:
 
-1. The browser-safe WASM package (`bindings-ts`): transliteration, metre, sandhi, and grammar.
+1. The browser-safe WASM package (`@siva-sh/vidyut`): transliteration, metre, sandhi, and grammar.
 2. The data-backed `vidyut-kosha` dictionary: run this on a trusted server and expose a small,
    typed HTTP API to React.
 
@@ -16,7 +16,7 @@ From this repository:
 
 ```sh
 cd bindings-ts
-wasm-pack build --target bundler --out-name vidyut
+npm run build:bundler
 ```
 
 In a React workspace, install the local package (or publish it first):
@@ -31,8 +31,8 @@ browser concern.
 
 ## 2. Initialize once with a React provider
 
-Create `src/vidyut/VidyutProvider.tsx`. The generated declaration exports Vidyut's enums and also
-the `Prakriya`, `Classification`, `SandhiRule`, and `SandhiSplit` interfaces.
+Create `src/vidyut/VidyutProvider.tsx`. The package’s public API exports `Scheme` and the
+`Prakriya`, `Classification`, `SandhiRule`, and `SandhiSplit` interfaces.
 
 ```tsx
 "use client";
@@ -46,7 +46,7 @@ import {
   transliterate,
   type Classification,
   type SandhiSplit,
-} from "bindings-ts";
+} from "@siva-sh/vidyut";
 
 type VidyutApi = {
   Scheme: typeof Scheme;
@@ -75,8 +75,8 @@ export function VidyutProvider({ children }: { children: ReactNode }) {
       sandhi,
       vyakarana,
       transliterate,
-      classify: (input) => chandas.classify(input) as Classification,
-      split: (input) => sandhi.splitAll(input) as SandhiSplit[],
+      classify: (input) => chandas.classify(input),
+      split: (input) => sandhi.splitAll(input),
     });
     return () => {
       chandas.free();

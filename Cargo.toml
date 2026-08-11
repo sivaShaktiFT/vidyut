@@ -60,5 +60,7 @@ rustc-hash = "2.1.0"
 serde = "1.0.217"
 
 [profile.release]
-debug = 2
-incremental = true
+# The browser package is built from this workspace, so release-size policy must live here.
+debug = 0
+incremental = false
+opt-level = "s"

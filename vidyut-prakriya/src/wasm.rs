@@ -25,17 +25,6 @@ extern crate console_error_panic_hook;
 use crate::Vyakarana;
 use wasm_bindgen::prelude::*;
 
-#[wasm_bindgen]
-extern "C" {
-    /// Exposes `console.error` in case we need to log anything to the JS console.
-    #[wasm_bindgen(js_namespace = console, js_name = error)]
-    fn error(s: &str);
-
-    /// Exposes `console.error` in case we need to log anything to the JS console.
-    #[wasm_bindgen(js_namespace = console, js_name = debug)]
-    fn debug(s: &str);
-}
-
 /// A rule that was applied in the derivation.
 ///
 /// We use this data to look up the rule's text in the frontend.
@@ -128,9 +117,12 @@ fn to_web_prakriyas(prakriyas: &[Prakriya]) -> Vec<WebPrakriya> {
         .collect()
 }
 
-/// Return a consistent, serializable empty result for invalid JavaScript arguments.
-fn empty_prakriyas() -> JsValue {
-    serde_wasm_bindgen::to_value(&Vec::<WebPrakriya>::new()).expect("wasm")
+fn to_js_value<T: Serialize>(value: &T) -> std::result::Result<JsValue, JsError> {
+    serde_wasm_bindgen::to_value(value).map_err(|error| JsError::new(&error.to_string()))
+}
+
+fn invalid_args(message: impl Into<String>) -> Error {
+    Error::ParseError(message.into())
 }
 
 // For now, mula-dhatus only.
@@ -241,60 +233,71 @@ impl KrdantaArgs {
             builder = builder.prayoga(prayoga);
         }
         if let Some(upapada) = self.upapada {
-            if let Some(stem_val) = upapada.stem {
-                debug(&format!(
-                    "[vidyut debug] upapada:v={}, l={}",
-                    upapada.vibhakti.unwrap(),
-                    upapada.linga.unwrap()
-                ));
-                let pratipadika = Pratipadika::basic(Slp1String::from(stem_val)?);
-
-                let subanta = Subanta::new(
-                    pratipadika,
-                    upapada.linga.unwrap(),
-                    upapada.vibhakti.unwrap(),
-                    upapada.vacana.unwrap(),
-                );
-                builder = builder.upapada(subanta);
-            }
+            let (stem, linga, vibhakti, vacana) = match (
+                upapada.stem,
+                upapada.linga,
+                upapada.vibhakti,
+                upapada.vacana,
+            ) {
+                (Some(stem), Some(linga), Some(vibhakti), Some(vacana)) => {
+                    (stem, linga, vibhakti, vacana)
+                }
+                _ => {
+                    return Err(invalid_args(
+                        "upapada must include stem, linga, vibhakti, and vacana",
+                    ))
+                }
+            };
+            let pratipadika = Pratipadika::basic(Slp1String::from(stem)?);
+            builder = builder.upapada(Subanta::new(pratipadika, linga, vibhakti, vacana));
         }
         builder.build()
     }
 }
 
-impl SubantaArgs {
-    fn into_rust(self) -> Result<Subanta> {
-        let pratipadika = match self.pratipadika {
-            PratipadikaArgs {
+impl PratipadikaArgs {
+    fn into_rust(self) -> Result<Pratipadika> {
+        match self {
+            Self {
                 basic: Some(basic),
                 nyap: None,
                 krdanta: None,
                 taddhitanta: None,
-            } => Pratipadika::basic(Slp1String::from(basic)?),
-            PratipadikaArgs {
+            } => Ok(Pratipadika::basic(Slp1String::from(basic)?)),
+            Self {
                 basic: None,
                 nyap: Some(nyap),
                 krdanta: None,
                 taddhitanta: None,
-            } => Pratipadika::nyap(Slp1String::from(nyap).expect("ok")),
-            PratipadikaArgs {
+            } => Ok(Pratipadika::nyap(Slp1String::from(nyap)?)),
+            Self {
                 basic: None,
                 nyap: None,
-                krdanta: Some(krt),
+                krdanta: Some(krdanta),
                 taddhitanta: None,
-            } => Pratipadika::Krdanta(Box::new(krt.into_rust()?)),
-            PratipadikaArgs {
+            } => Ok(Pratipadika::Krdanta(Box::new(krdanta.into_rust()?))),
+            Self {
                 basic: None,
                 nyap: None,
                 krdanta: None,
-                taddhitanta: Some(tad),
+                taddhitanta: Some(taddhitanta),
             } => {
-                let base = Pratipadika::basic(Slp1String::from(tad.stem).expect("ok"));
-                Pratipadika::Taddhitanta(Box::new(Taddhitanta::new(base, tad.taddhita)))
+                let base = Pratipadika::basic(Slp1String::from(taddhitanta.stem)?);
+                Ok(Pratipadika::Taddhitanta(Box::new(Taddhitanta::new(
+                    base,
+                    taddhitanta.taddhita,
+                ))))
             }
-            // TODO: improve error handling, remove placeholder
-            _ => Pratipadika::basic(Slp1String::from("doza").expect("ok")),
-        };
+            _ => Err(invalid_args(
+                "pratipadika must specify exactly one of basic, nyap, krdanta, or taddhitanta",
+            )),
+        }
+    }
+}
+
+impl SubantaArgs {
+    fn into_rust(self) -> Result<Subanta> {
+        let pratipadika = self.pratipadika.into_rust()?;
         Subanta::builder()
             .pratipadika(pratipadika)
             .linga(self.linga)
@@ -322,27 +325,7 @@ impl TinantaArgs {
 
 impl TaddhitantaArgs {
     fn into_rust(self) -> Result<Taddhitanta> {
-        let pratipadika = match self.pratipadika {
-            PratipadikaArgs {
-                basic: Some(basic),
-                nyap: None,
-                krdanta: None,
-                taddhitanta: None,
-            } => Pratipadika::basic(Slp1String::from(basic)?),
-            PratipadikaArgs {
-                basic: None,
-                nyap: Some(nyap),
-                krdanta: None,
-                taddhitanta: None,
-            } => Pratipadika::nyap(Slp1String::from(nyap).expect("ok")),
-            PratipadikaArgs {
-                basic: None,
-                nyap: None,
-                krdanta: Some(krt),
-                taddhitanta: None,
-            } => Pratipadika::Krdanta(Box::new(krt.into_rust()?)),
-            _ => Pratipadika::basic(Slp1String::from("doza").expect("ok")),
-        };
+        let pratipadika = self.pratipadika.into_rust()?;
         Ok(Taddhitanta::new(pratipadika, self.taddhita))
     }
 }
@@ -369,187 +352,100 @@ impl Vidyut {
 
     /// Wrapper for `Vyakarana::derive_krdantas`.
     #[allow(non_snake_case)]
-    pub fn deriveKrdantas(&self, val: JsValue) -> JsValue {
-        let js_args: KrdantaArgs = match serde_wasm_bindgen::from_value(val) {
-            Ok(args) => args,
-            Err(e) => {
-                error(&format!("[vidyut] deriveKrdantas parse error: {e:?}"));
-                return empty_prakriyas();
-            }
-        };
-
-        match js_args.into_rust() {
-            Ok(args) => {
-                let v = Vyakarana::new();
-                let prakriyas = v.derive_krdantas(&args);
-
-                let web_prakriyas = to_web_prakriyas(&prakriyas);
-                serde_wasm_bindgen::to_value(&web_prakriyas).expect("wasm")
-            }
-            Err(_) => {
-                error(&format!("[vidyut] Derivation error"));
-                empty_prakriyas()
-            }
-        }
+    pub fn deriveKrdantas(&self, val: JsValue) -> std::result::Result<JsValue, JsError> {
+        let js_args: KrdantaArgs = serde_wasm_bindgen::from_value(val)
+            .map_err(|error| JsError::new(&error.to_string()))?;
+        let args = js_args
+            .into_rust()
+            .map_err(|error| JsError::new(&error.to_string()))?;
+        to_js_value(&to_web_prakriyas(&Vyakarana::new().derive_krdantas(&args)))
     }
 
     /// Wrapper for `Vyakarana::derive_dhatus`.
     #[allow(non_snake_case)]
-    pub fn deriveDhatus(&self, val: JsValue) -> JsValue {
-        let v = Vyakarana::new();
-        let js_args: DhatuArgs = match serde_wasm_bindgen::from_value(val) {
-            Ok(args) => args,
-            Err(e) => {
-                error(&format!("[vidyut] deriveDhatus parse error: {e:?}"));
-                return empty_prakriyas();
-            }
-        };
-
-        match js_args.into_rust() {
-            Ok(args) => {
-                let prakriyas = v.derive_dhatus(&args);
-                let web_prakriyas = to_web_prakriyas(&prakriyas);
-                serde_wasm_bindgen::to_value(&web_prakriyas).expect("wasm")
-            }
-            Err(_) => {
-                error(&format!("[vidyut] Derivation error"));
-                empty_prakriyas()
-            }
-        }
+    pub fn deriveDhatus(&self, val: JsValue) -> std::result::Result<JsValue, JsError> {
+        let js_args: DhatuArgs = serde_wasm_bindgen::from_value(val)
+            .map_err(|error| JsError::new(&error.to_string()))?;
+        let args = js_args
+            .into_rust()
+            .map_err(|error| JsError::new(&error.to_string()))?;
+        to_js_value(&to_web_prakriyas(&Vyakarana::new().derive_dhatus(&args)))
     }
 
     /// Wrapper for `Vyakarana::derive_subantas`.
     #[allow(non_snake_case)]
-    pub fn deriveSubantas(&self, val: JsValue) -> JsValue {
-        let v = Vyakarana::new();
-        let js_args: SubantaArgs = match serde_wasm_bindgen::from_value(val) {
-            Ok(args) => args,
-            Err(e) => {
-                error(&format!("[vidyut] deriveSubantas parse error: {e:?}"));
-                return empty_prakriyas();
-            }
-        };
-
-        match js_args.into_rust() {
-            Ok(args) => {
-                let prakriyas = v.derive_subantas(&args);
-                let web_prakriyas = to_web_prakriyas(&prakriyas);
-                serde_wasm_bindgen::to_value(&web_prakriyas).expect("wasm")
-            }
-            Err(_) => {
-                error(&format!("[vidyut] Derivation error"));
-                empty_prakriyas()
-            }
-        }
+    pub fn deriveSubantas(&self, val: JsValue) -> std::result::Result<JsValue, JsError> {
+        let js_args: SubantaArgs = serde_wasm_bindgen::from_value(val)
+            .map_err(|error| JsError::new(&error.to_string()))?;
+        let args = js_args
+            .into_rust()
+            .map_err(|error| JsError::new(&error.to_string()))?;
+        to_js_value(&to_web_prakriyas(&Vyakarana::new().derive_subantas(&args)))
     }
 
     /// Wrapper for `Vyakarana::derive_tinantas`.
     ///
     /// TODO: how might we reduce the number of arguments here?
     #[allow(non_snake_case)]
-    pub fn deriveTinantas(&self, val: JsValue) -> JsValue {
-        let v = Vyakarana::new();
-        let js_args: TinantaArgs = match serde_wasm_bindgen::from_value(val) {
-            Ok(args) => args,
-            Err(e) => {
-                error(&format!("[vidyut] deriveTinantas parse error: {e:?}"));
-                return empty_prakriyas();
-            }
-        };
-
-        match js_args.into_rust() {
-            Ok(args) => {
-                let prakriyas = v.derive_tinantas(&args);
-                let web_prakriyas = to_web_prakriyas(&prakriyas);
-                serde_wasm_bindgen::to_value(&web_prakriyas).expect("wasm")
-            }
-            Err(_) => {
-                error(&format!("[vidyut] Derivation error"));
-                empty_prakriyas()
-            }
-        }
+    pub fn deriveTinantas(&self, val: JsValue) -> std::result::Result<JsValue, JsError> {
+        let js_args: TinantaArgs = serde_wasm_bindgen::from_value(val)
+            .map_err(|error| JsError::new(&error.to_string()))?;
+        let args = js_args
+            .into_rust()
+            .map_err(|error| JsError::new(&error.to_string()))?;
+        to_js_value(&to_web_prakriyas(&Vyakarana::new().derive_tinantas(&args)))
     }
 
     /// Wrapper for `Vyakarana::derive_taddhitantas`.
     #[allow(non_snake_case)]
-    pub fn deriveTaddhitantas(&self, val: JsValue) -> JsValue {
-        let v = Vyakarana::new();
-        let js_args: TaddhitantaArgs = match serde_wasm_bindgen::from_value(val) {
-            Ok(args) => args,
-            Err(e) => {
-                error(&format!("[vidyut] deriveTaddhitantas parse error: {e:?}"));
-                return empty_prakriyas();
-            }
-        };
-
-        match js_args.into_rust() {
-            Ok(args) => {
-                let prakriyas = v.derive_taddhitantas(&args);
-                let web_prakriyas = to_web_prakriyas(&prakriyas);
-                serde_wasm_bindgen::to_value(&web_prakriyas).expect("wasm")
-            }
-            Err(_) => {
-                error(&format!("[vidyut] Derivation error"));
-                empty_prakriyas()
-            }
-        }
+    pub fn deriveTaddhitantas(&self, val: JsValue) -> std::result::Result<JsValue, JsError> {
+        let js_args: TaddhitantaArgs = serde_wasm_bindgen::from_value(val)
+            .map_err(|error| JsError::new(&error.to_string()))?;
+        let args = js_args
+            .into_rust()
+            .map_err(|error| JsError::new(&error.to_string()))?;
+        to_js_value(&to_web_prakriyas(
+            &Vyakarana::new().derive_taddhitantas(&args),
+        ))
     }
 
     /// Wrapper for `Vyakarana::derive_stryantas`.
     #[allow(non_snake_case)]
-    pub fn deriveStryantas(&self, val: JsValue) -> JsValue {
-        let v = Vyakarana::new();
-        let js_args: PratipadikaArgs = match serde_wasm_bindgen::from_value(val) {
-            Ok(args) => args,
-            Err(e) => {
-                error(&format!("[vidyut] deriveStryantas parse error: {:?}", e));
-                return empty_prakriyas();
-            }
+    pub fn deriveStryantas(&self, val: JsValue) -> std::result::Result<JsValue, JsError> {
+        let js_args: PratipadikaArgs = serde_wasm_bindgen::from_value(val)
+            .map_err(|error| JsError::new(&error.to_string()))?;
+        let pratipadika = js_args
+            .into_rust()
+            .map_err(|error| JsError::new(&error.to_string()))?;
+        to_js_value(&to_web_prakriyas(
+            &Vyakarana::new().derive_stryantas(&pratipadika),
+        ))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn rejects_multiple_pratipadika_variants() {
+        let args = PratipadikaArgs {
+            basic: Some("rAma".to_string()),
+            nyap: Some("nadI".to_string()),
+            krdanta: None,
+            taddhitanta: None,
         };
+        assert!(args.into_rust().is_err());
+    }
 
-        debug(&format!(
-            "[vidyut] deriveStryantas js_args: basic={:?}, nyap={:?}, krdanta={:?}",
-            js_args.basic,
-            js_args.nyap,
-            js_args.krdanta.is_some()
-        ));
-
-        let pratipadika = match js_args {
-            PratipadikaArgs {
-                basic: Some(basic),
-                nyap: None,
-                krdanta: None,
-                taddhitanta: None,
-            } => Pratipadika::basic(Slp1String::from(basic).expect("ok")),
-            PratipadikaArgs {
-                basic: None,
-                nyap: None,
-                krdanta: Some(krt),
-                taddhitanta: None,
-            } => match krt.into_rust() {
-                Ok(k) => {
-                    debug(&format!(
-                        "[vidyut] deriveStryantas krdanta conversion successful"
-                    ));
-                    Pratipadika::Krdanta(Box::new(k))
-                }
-                Err(e) => {
-                    error(&format!("[vidyut] Krdanta conversion error: {:?}", e));
-                    return empty_prakriyas();
-                }
-            },
-            _ => {
-                error("[vidyut] Invalid pratipadika args for stryantas");
-                return empty_prakriyas();
-            }
+    #[test]
+    fn rejects_invalid_pratipadika_slp1() {
+        let args = PratipadikaArgs {
+            basic: None,
+            nyap: Some("@".to_string()),
+            krdanta: None,
+            taddhitanta: None,
         };
-
-        let prakriyas = v.derive_stryantas(&pratipadika);
-        debug(&format!(
-            "[vidyut] deriveStryantas produced {} results",
-            prakriyas.len()
-        ));
-        let web_prakriyas = to_web_prakriyas(&prakriyas);
-        serde_wasm_bindgen::to_value(&web_prakriyas).expect("wasm")
+        assert!(args.into_rust().is_err());
     }
 }
