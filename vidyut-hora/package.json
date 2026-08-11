@@ -1,7 +1,7 @@
 {
-  "name": "@vidyut-hora/panchanga",
+  "name": "@siva-sh/hora",
   "version": "0.1.0",
-  "description": "Reusable TypeScript Panchanga calculations powered by Swiss Ephemeris",
+  "description": "Headless TypeScript Panchanga and Vedic astrology calculations powered by Swiss Ephemeris",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",
@@ -19,22 +19,29 @@
   "files": [
     "dist",
     "README.md",
-    "sources.md",
     "LICENSE"
   ],
   "scripts": {
     "build": "tsup src/index.ts src/node.ts --format esm --dts --clean",
     "test": "vitest run",
     "test:browser-entry": "npm run build && ! rg -n 'node:' dist/index.js dist/index.d.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "format": "prettier --check .",
+    "format:write": "prettier --write .",
+    "publish:npm": "npm publish --access public"
   },
   "dependencies": {
     "sweph-wasm": "2.6.9"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/node": "^26.2.0",
+    "eslint": "^10.8.1",
+    "prettier": "^3.9.6",
     "tsup": "^8.5.1",
     "typescript": "^5.9.2",
+    "typescript-eslint": "^8.67.0",
     "vitest": "^3.2.4"
   }
 }
