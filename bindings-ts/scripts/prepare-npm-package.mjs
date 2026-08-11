@@ -9,6 +9,7 @@ const generatedPackagePath = resolve(scriptDirectory, "../pkg/browser/package.js
 const declarationPath = resolve(scriptDirectory, "../pkg/browser/vidyut.d.ts");
 const publicDeclarationPath = resolve(scriptDirectory, "../pkg/index.d.ts");
 const mitLicensePath = resolve(scriptDirectory, "../LICENSE-MIT");
+const readmePath = resolve(scriptDirectory, "../README.md");
 const packageJson = JSON.parse(await readFile(generatedPackagePath, "utf8"));
 const generatedDeclarations = await readFile(declarationPath, "utf8");
 const generatedModule = await readFile(resolve(scriptDirectory, "../pkg/browser/vidyut.js"), "utf8");
@@ -69,6 +70,7 @@ export class Vyakarana { constructor(); free(): void; deriveDhatus(args: DhatuAr
 );
 
 await copyFile(mitLicensePath, resolve(scriptDirectory, "../pkg/LICENSE-MIT"));
+await copyFile(readmePath, resolve(scriptDirectory, "../pkg/README.md"));
 // wasm-pack adds .gitignore files that ignore every generated artefact. npm honors those files
 // even for directories explicitly listed in `files`, so remove them from the publish tree.
 await Promise.all([
@@ -96,6 +98,7 @@ packageJson.files = [
   "node",
   "index.d.ts",
   "LICENSE-MIT",
+  "README.md",
 ];
 
 await writeFile(packagePath, `${JSON.stringify(packageJson, null, 2)}\n`);
