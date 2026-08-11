@@ -221,10 +221,15 @@ impl KrdantaArgs {
         let dhatu: Dhatu = self.dhatu.into_rust()?;
         let mut builder = Krdanta::builder().dhatu(dhatu);
 
-        if let Some(unadi) = self.unadi {
-            builder = builder.krt(unadi);
-        } else if let Some(krt) = self.krt {
-            builder = builder.krt(krt);
+        match (self.krt, self.unadi) {
+            (Some(krt), None) => builder = builder.krt(krt),
+            (None, Some(unadi)) => builder = builder.krt(unadi),
+            (None, None) => {
+                return Err(invalid_args("krdanta must include exactly one of krt or unadi"))
+            }
+            (Some(_), Some(_)) => {
+                return Err(invalid_args("krdanta must include exactly one of krt or unadi"))
+            }
         }
         if let Some(la) = self.lakara {
             builder = builder.lakara(la);

@@ -52,14 +52,15 @@ export interface DhatuArgs {
   sanadi: string[];
   prefixes: string[];
 }
-export interface KrdantaArgs {
+export type KrdantaArgs = {
   dhatu: DhatuArgs;
-  krt?: string;
-  unadi?: string;
   lakara?: string;
   prayoga?: string;
   upapada?: { stem: string; linga: string; vibhakti: string; vacana: string };
-}
+} & (
+  | { krt: string; unadi?: never }
+  | { unadi: string; krt?: never }
+);
 export type PratipadikaArgs =
   | { basic: string; nyap?: never; krdanta?: never; taddhitanta?: never }
   | { nyap: string; basic?: never; krdanta?: never; taddhitanta?: never }
@@ -362,6 +363,7 @@ impl Vyakarana {
     /// Create a word generator.
     #[wasm_bindgen(constructor)]
     pub fn new() -> Vyakarana {
+        utils::set_panic_hook();
         Vyakarana {
             inner: vidyut_prakriya::wasm::Vidyut::init(),
         }

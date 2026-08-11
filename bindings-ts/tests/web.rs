@@ -42,6 +42,13 @@ struct Krdanta<'a> {
 }
 
 #[derive(Serialize)]
+struct ConflictingKrdanta<'a> {
+    dhatu: Dhatu<'a>,
+    krt: &'a str,
+    unadi: &'a str,
+}
+
+#[derive(Serialize)]
 struct Tinanta<'a> {
     dhatu: Dhatu<'a>,
     lakara: &'a str,
@@ -66,6 +73,19 @@ fn malformed_grammar_rejects_without_poisoning_the_instance() {
     };
     let partial = serde_wasm_bindgen::to_value(&partial).expect("serializable test input");
     assert!(vyakarana.derive_krdantas(partial).is_err());
+
+    let conflicting = ConflictingKrdanta {
+        dhatu: Dhatu {
+            aupadeshika: "BU",
+            gana: "Bhvadi",
+            sanadi: vec![],
+            prefixes: vec![],
+        },
+        krt: "kta",
+        unadi: "YuR",
+    };
+    let conflicting = serde_wasm_bindgen::to_value(&conflicting).expect("serializable test input");
+    assert!(vyakarana.derive_krdantas(conflicting).is_err());
 
     let valid = Tinanta {
         dhatu: Dhatu {

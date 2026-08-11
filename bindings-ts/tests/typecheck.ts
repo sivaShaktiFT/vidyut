@@ -40,6 +40,10 @@ new Vyakarana().deriveKrdantas({
     upapada: { stem: "rAma", linga: "Pum", vibhakti: "Prathama", vacana: "Eka" },
 });
 
+// @ts-expect-error a krdanta must select exactly one suffix family.
+new Vyakarana().deriveKrdantas({ dhatu: args.dhatu });
+// @ts-expect-error krt and unadi cannot be selected together.
+new Vyakarana().deriveKrdantas({ dhatu: args.dhatu, krt: "kta", unadi: "YuR" });
 // @ts-expect-error upapada must be complete so it can never trigger a WASM panic.
 new Vyakarana().deriveKrdantas({ dhatu: args.dhatu, krt: "kta", upapada: { stem: "rAma" } });
 new Vyakarana().deriveSubantas({

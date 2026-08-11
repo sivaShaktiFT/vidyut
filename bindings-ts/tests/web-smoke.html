@@ -1,0 +1,33 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Vidyut web package smoke test</title>
+<output id="result">Loading Vidyut…</output>
+<script type="module">
+  import init, { Sandhi, Scheme, Vyakarana, transliterate } from "../pkg/index.js";
+
+  const result = document.querySelector("#result");
+
+  try {
+    await init();
+
+    const devanagari = transliterate("rAma", Scheme.Slp1, Scheme.Devanagari);
+    const sandhi = new Sandhi().join("ca", "iti");
+    const forms = new Vyakarana().deriveTinantas({
+      dhatu: { aupadeshika: "BU", gana: "Bhvadi", prefixes: [], sanadi: [] },
+      lakara: "Lat",
+      prayoga: "Kartari",
+      purusha: "Prathama",
+      vacana: "Eka",
+      skip_at_agama: false,
+    });
+
+    if (devanagari !== "राम" || sandhi !== "ceti" || !Array.isArray(forms) || forms.length === 0) {
+      throw new Error("The published API returned an unexpected result");
+    }
+
+    result.textContent = "Vidyut web package smoke test passed";
+  } catch (error) {
+    result.textContent = `Vidyut web package smoke test failed: ${error}`;
+    throw error;
+  }
+</script>

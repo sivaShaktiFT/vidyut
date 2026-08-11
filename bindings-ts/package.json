@@ -4,6 +4,7 @@
   "scripts": {
     "build": "node scripts/clean-package.mjs && wasm-pack build --target web --release --out-name vidyut --scope siva-sh && node scripts/prepare-npm-package.mjs",
     "build:bundler": "node scripts/clean-package.mjs && wasm-pack build --target bundler --release --out-name vidyut --scope siva-sh && node scripts/prepare-npm-package.mjs",
+    "test:web:manual": "npm run build && npx --yes serve . --listen 4173",
     "test:types": "npm exec --yes --package=typescript -- tsc --noEmit --strict --target ES2022 --module NodeNext --moduleResolution NodeNext tests/typecheck.ts",
     "pack": "npm run build && (cd pkg && npm pack)",
     "publish:npm": "npm run build && (cd pkg && npm publish --access public)"

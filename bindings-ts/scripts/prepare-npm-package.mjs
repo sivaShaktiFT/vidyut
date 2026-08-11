@@ -60,7 +60,7 @@ export interface Prakriya { text: string; history: PrakriyaStep[]; }
 /** Grammar enums are Rust enum names, represented as strings (for example, "Bhvadi"). */
 export interface DhatuArgs { aupadeshika: string; gana: string; antargana?: string; sanadi: string[]; prefixes: string[]; }
 export interface UpapadaArgs { stem: string; linga: string; vibhakti: string; vacana: string; }
-export interface KrdantaArgs { dhatu: DhatuArgs; krt?: string; unadi?: string; lakara?: string; prayoga?: string; upapada?: UpapadaArgs; }
+export type KrdantaArgs = { dhatu: DhatuArgs; lakara?: string; prayoga?: string; upapada?: UpapadaArgs; } & ({ krt: string; unadi?: never } | { unadi: string; krt?: never });
 export type PratipadikaArgs =
   | { basic: string; nyap?: never; krdanta?: never; taddhitanta?: never }
   | { nyap: string; basic?: never; krdanta?: never; taddhitanta?: never }
@@ -85,6 +85,13 @@ packageJson.publishConfig = {
 };
 packageJson.main = "index.js";
 packageJson.types = "index.d.ts";
+packageJson.exports = {
+  ".": {
+    types: "./index.d.ts",
+    import: "./index.js",
+    default: "./index.js",
+  },
+};
 packageJson.files = [
   "vidyut_bg.wasm",
   "vidyut.js",
