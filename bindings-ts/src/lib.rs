@@ -1,4 +1,4 @@
-//! A browser-oriented WebAssembly API for the Vidyut Sanskrit toolkit.
+//! A universal WebAssembly API for the Vidyut Sanskrit toolkit.
 //!
 //! This crate intentionally presents the independent Vidyut tools as one npm package. Build it
 //! with `wasm-pack` to generate the JavaScript loader and TypeScript declarations.

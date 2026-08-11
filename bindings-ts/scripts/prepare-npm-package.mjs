@@ -1,18 +1,18 @@
-import { copyFile, readFile, writeFile } from "node:fs/promises";
+import { copyFile, readFile, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { gzipSync } from "node:zlib";
 
 const scriptDirectory = fileURLToPath(new URL(".", import.meta.url));
 const packagePath = resolve(scriptDirectory, "../pkg/package.json");
-const declarationPath = resolve(scriptDirectory, "../pkg/vidyut.d.ts");
+const generatedPackagePath = resolve(scriptDirectory, "../pkg/browser/package.json");
+const declarationPath = resolve(scriptDirectory, "../pkg/browser/vidyut.d.ts");
 const publicDeclarationPath = resolve(scriptDirectory, "../pkg/index.d.ts");
-const publicModulePath = resolve(scriptDirectory, "../pkg/index.js");
 const mitLicensePath = resolve(scriptDirectory, "../LICENSE-MIT");
-const packageJson = JSON.parse(await readFile(packagePath, "utf8"));
+const packageJson = JSON.parse(await readFile(generatedPackagePath, "utf8"));
 const generatedDeclarations = await readFile(declarationPath, "utf8");
-const generatedModule = await readFile(resolve(scriptDirectory, "../pkg/vidyut.js"), "utf8");
-const wasm = await readFile(resolve(scriptDirectory, "../pkg/vidyut_bg.wasm"));
+const generatedModule = await readFile(resolve(scriptDirectory, "../pkg/browser/vidyut.js"), "utf8");
+const wasm = await readFile(resolve(scriptDirectory, "../pkg/browser/vidyut_bg.wasm"));
 const scheme = generatedDeclarations.match(/export enum Scheme \{[\s\S]*?^\}/m)?.[0];
 
 if (!scheme) {
@@ -29,19 +29,11 @@ if (wasm.byteLength > MAX_WASM_BYTES || gzipBytes > MAX_GZIP_BYTES) {
 }
 
 const hasDefaultInitializer = /export default/.test(generatedModule);
-const defaultInitializer = hasDefaultInitializer
-  ? "export { default } from \"./vidyut.js\";\n"
-  : "";
-
-await writeFile(
-  publicModulePath,
-  `${defaultInitializer}export { Chandas, Sandhi, Scheme, Vyakarana, detect, initialize, transliterate } from "./vidyut.js";\n`,
-);
 
 await writeFile(
   publicDeclarationPath,
   `/* Public, typed API for @siva-sh/vidyut. Generated from bindings-ts/scripts/prepare-npm-package.mjs. */
-${hasDefaultInitializer ? "export default function init(module_or_path?: RequestInfo | URL | Response | BufferSource | WebAssembly.Module): Promise<void>;\n" : ""}
+${hasDefaultInitializer ? "export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;\nexport default function init(options?: { module_or_path: InitInput | Promise<InitInput> }): Promise<void>;\n" : ""}
 export function initialize(): void;
 export function transliterate(input: string, from: Scheme, to: Scheme): string;
 export function detect(input: string): Scheme;
@@ -77,26 +69,31 @@ export class Vyakarana { constructor(); free(): void; deriveDhatus(args: DhatuAr
 );
 
 await copyFile(mitLicensePath, resolve(scriptDirectory, "../pkg/LICENSE-MIT"));
+// wasm-pack adds .gitignore files that ignore every generated artefact. npm honors those files
+// even for directories explicitly listed in `files`, so remove them from the publish tree.
+await Promise.all([
+  rm(resolve(scriptDirectory, "../pkg/browser/.gitignore"), { force: true }),
+  rm(resolve(scriptDirectory, "../pkg/node/.gitignore"), { force: true }),
+]);
 
 packageJson.name = "@siva-sh/vidyut";
 packageJson.publishConfig = {
   ...packageJson.publishConfig,
   access: "public",
 };
-packageJson.main = "index.js";
+packageJson.main = "node/vidyut.js";
 packageJson.types = "index.d.ts";
 packageJson.exports = {
   ".": {
     types: "./index.d.ts",
-    import: "./index.js",
-    default: "./index.js",
+    node: "./node/vidyut.js",
+    browser: "./browser/vidyut.js",
+    default: "./browser/vidyut.js",
   },
 };
 packageJson.files = [
-  "vidyut_bg.wasm",
-  "vidyut.js",
-  "vidyut_bg.js",
-  "index.js",
+  "browser",
+  "node",
   "index.d.ts",
   "LICENSE-MIT",
 ];

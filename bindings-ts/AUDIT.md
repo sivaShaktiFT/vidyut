@@ -1,36 +1,48 @@
-# TypeScript bindings audit
+# Universal package audit
 
 Audit date: 2026-08-11
 
-Scope: `bindings-ts`, its npm packaging script, the generated `pkg/` artefact, and the
-`vidyut-prakriya` WASM adapter it exposes.
-
 ## Result
 
-All findings from the prior audit are fixed in the current worktree:
+`@siva-sh/vidyut` now publishes a single, root-only API with conditional exports:
 
-| Previous finding | Resolution |
+| Environment | Selected loader | Initialization |
+| --- | --- | --- |
+| Node.js | `node/vidyut.js` (`wasm-pack --target nodejs`) | synchronous, automatic |
+| Browsers and bundlers | `browser/vidyut.js` (`wasm-pack --target web`) | `await init()` once |
+| Workers | browser loader | `await init()`, optionally with `{ module_or_path }` |
+
+The Node loader owns its WASM file and uses Node's native loader. The browser loader remains an
+ES module with an asynchronous initializer. Both expose the same generated WASM API and the same
+root TypeScript declaration file.
+
+## Findings and resolutions
+
+| Finding | Resolution |
 | --- | --- |
-| Ambiguous `KrdantaArgs` suffix selector | `KrdantaArgs` is now an exclusive union, and the Rust adapter rejects zero or two selectors for JavaScript callers. |
-| Untyped deep import of an internal module | The generated package now has a root-only `exports` map. |
-| No browser execution of the web package | `tests/web-smoke.html` exercises the built web package after its asynchronous initializer; `npm run test:web:manual` builds and serves it for browser execution. |
-
-The README has also been narrowed to a client-side React integration guide. It initializes
-WebAssembly once from `useEffect`, which avoids SSR and React Strict Mode issues.
+| The package was built only with `--target web`, making Node/server execution impossible. | The build now emits separate `web` and `nodejs` targets and selects them through `exports`. |
+| `wasm-pack`'s generated `.gitignore` excluded both target folders despite the npm `files` list. | Packaging removes those generated ignore files before packing; the tarball now includes both loaders and WASM binaries. |
+| The public initializer declaration used wasm-bindgen's deprecated positional input. | The declaration and README use the current `{ module_or_path }` options object. |
+| The former README required a React client boundary. | It now documents Node, browser/bundler/worker, React SSR boundaries, and the common API. |
 
 ## Verification performed
 
-- `cargo fmt --check`
-- `npm run build`
-- `npm run test:types`
-- `cargo test -p bindings-ts` — 4 tests pass.
-- `wasm-pack test --node` — 3 tests pass, including rejection of conflicting `krt` and `unadi`
-  selectors without poisoning the WASM instance.
-- `(cd pkg && npm pack --dry-run --json)` — passes; the tarball contains the root API, README,
-  MIT licence, and WebAssembly artefact.
-- Chromium smoke test against `tests/web-smoke.html` — passed after loading the built default web
-  target over HTTP. It awaited `init()` and verified transliteration, sandhi, and a `Vyakarana`
-  derivation.
+- `npm run build` — builds both release WASM targets.
+- Node smoke test — transliteration, sandhi, and word generation pass with the Node loader.
+- Browser-loader smoke test — the browser ES-module loader initializes from explicit WASM bytes
+  and transliterates successfully.
+- `npm run test:types` — strict NodeNext TypeScript API check passes.
+- `cargo fmt --check` and `cargo test -p bindings-ts` — pass (4 unit tests).
+- `npm pack --dry-run --json` — verifies the publishable tarball contains both loaders and both
+  WASM artefacts; a clean temporary install imported the package root successfully in Node.
+- `git diff --check` — passes.
 
-The workspace still emits pre-existing warnings from `vidyut-lipi` and `vidyut-prakriya`; none
-originate in `bindings-ts`.
+## Residual risk
+
+The existing `tests/web-smoke.html` remains the real-browser integration fixture. The local
+Playwright CLI wrapper could not start because its requested `playwright-cli` executable was not
+available from the installed npm package, so this audit validated the browser loader directly but
+did not rerun that fixture in Chromium. This is a tooling limitation, not a known package defect.
+
+The workspace emits pre-existing warnings from `vidyut-lipi` and `vidyut-prakriya`; none originate
+in `bindings-ts`.

@@ -1,8 +1,8 @@
 [package]
 name = "bindings-ts"
-version = "0.1.2"
+version = "0.2.0"
 authors = ["Ambuda <ambuda.library@gmail.com>", "Ronit<ronit@siva.sh>"]
-description = "WebAssembly and TypeScript bindings for Vidyut"
+description = "Universal WebAssembly and TypeScript bindings for Vidyut"
 license = "MIT"
 repository = "https://github.com/sivashaktift/vidyut"
 edition = "2021"
