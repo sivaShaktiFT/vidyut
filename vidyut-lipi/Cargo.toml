@@ -23,5 +23,11 @@ unicode-normalization = "0.1.22"
 [lib]
 crate-type = ["cdylib", "rlib"]
 
+[features]
+# Preserve the standalone wasm-pack API. Aggregating crates, such as bindings-ts, can opt out to
+# avoid exporting colliding JavaScript symbol names.
+default = ["wasm-bindings"]
+wasm-bindings = []
+
 [dev-dependencies]
 codes-iso-15924 = { version = "0.1.3", default-features = false }

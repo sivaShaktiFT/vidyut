@@ -9,6 +9,7 @@ mod macros;
 mod padya;
 mod sounds;
 
+#[cfg(feature = "wasm-bindings")]
 mod wasm;
 
 pub use akshara::{Akshara, Weight};

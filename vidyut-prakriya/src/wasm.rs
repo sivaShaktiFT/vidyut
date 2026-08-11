@@ -128,6 +128,11 @@ fn to_web_prakriyas(prakriyas: &[Prakriya]) -> Vec<WebPrakriya> {
         .collect()
 }
 
+/// Return a consistent, serializable empty result for invalid JavaScript arguments.
+fn empty_prakriyas() -> JsValue {
+    serde_wasm_bindgen::to_value(&Vec::<WebPrakriya>::new()).expect("wasm")
+}
+
 // For now, mula-dhatus only.
 #[derive(Serialize, Deserialize)]
 struct DhatuArgs {
@@ -365,7 +370,13 @@ impl Vidyut {
     /// Wrapper for `Vyakarana::derive_krdantas`.
     #[allow(non_snake_case)]
     pub fn deriveKrdantas(&self, val: JsValue) -> JsValue {
-        let js_args: KrdantaArgs = serde_wasm_bindgen::from_value(val).unwrap();
+        let js_args: KrdantaArgs = match serde_wasm_bindgen::from_value(val) {
+            Ok(args) => args,
+            Err(e) => {
+                error(&format!("[vidyut] deriveKrdantas parse error: {e:?}"));
+                return empty_prakriyas();
+            }
+        };
 
         match js_args.into_rust() {
             Ok(args) => {
@@ -377,7 +388,7 @@ impl Vidyut {
             }
             Err(_) => {
                 error(&format!("[vidyut] Derivation error"));
-                serde_wasm_bindgen::to_value(&Vec::<WebPrakriya>::new()).expect("wasm")
+                empty_prakriyas()
             }
         }
     }
@@ -386,7 +397,13 @@ impl Vidyut {
     #[allow(non_snake_case)]
     pub fn deriveDhatus(&self, val: JsValue) -> JsValue {
         let v = Vyakarana::new();
-        let js_args: DhatuArgs = serde_wasm_bindgen::from_value(val).unwrap();
+        let js_args: DhatuArgs = match serde_wasm_bindgen::from_value(val) {
+            Ok(args) => args,
+            Err(e) => {
+                error(&format!("[vidyut] deriveDhatus parse error: {e:?}"));
+                return empty_prakriyas();
+            }
+        };
 
         match js_args.into_rust() {
             Ok(args) => {
@@ -396,7 +413,7 @@ impl Vidyut {
             }
             Err(_) => {
                 error(&format!("[vidyut] Derivation error"));
-                serde_wasm_bindgen::to_value(&Vec::<WebPrakriya>::new()).expect("wasm")
+                empty_prakriyas()
             }
         }
     }
@@ -405,7 +422,13 @@ impl Vidyut {
     #[allow(non_snake_case)]
     pub fn deriveSubantas(&self, val: JsValue) -> JsValue {
         let v = Vyakarana::new();
-        let js_args: SubantaArgs = serde_wasm_bindgen::from_value(val).unwrap();
+        let js_args: SubantaArgs = match serde_wasm_bindgen::from_value(val) {
+            Ok(args) => args,
+            Err(e) => {
+                error(&format!("[vidyut] deriveSubantas parse error: {e:?}"));
+                return empty_prakriyas();
+            }
+        };
 
         match js_args.into_rust() {
             Ok(args) => {
@@ -415,7 +438,7 @@ impl Vidyut {
             }
             Err(_) => {
                 error(&format!("[vidyut] Derivation error"));
-                serde_wasm_bindgen::to_value(&Vec::<WebPrakriya>::new()).expect("wasm")
+                empty_prakriyas()
             }
         }
     }
@@ -426,7 +449,13 @@ impl Vidyut {
     #[allow(non_snake_case)]
     pub fn deriveTinantas(&self, val: JsValue) -> JsValue {
         let v = Vyakarana::new();
-        let js_args: TinantaArgs = serde_wasm_bindgen::from_value(val).unwrap();
+        let js_args: TinantaArgs = match serde_wasm_bindgen::from_value(val) {
+            Ok(args) => args,
+            Err(e) => {
+                error(&format!("[vidyut] deriveTinantas parse error: {e:?}"));
+                return empty_prakriyas();
+            }
+        };
 
         match js_args.into_rust() {
             Ok(args) => {
@@ -436,7 +465,7 @@ impl Vidyut {
             }
             Err(_) => {
                 error(&format!("[vidyut] Derivation error"));
-                serde_wasm_bindgen::to_value(&Vec::<WebPrakriya>::new()).expect("wasm")
+                empty_prakriyas()
             }
         }
     }
@@ -445,7 +474,13 @@ impl Vidyut {
     #[allow(non_snake_case)]
     pub fn deriveTaddhitantas(&self, val: JsValue) -> JsValue {
         let v = Vyakarana::new();
-        let js_args: TaddhitantaArgs = serde_wasm_bindgen::from_value(val).unwrap();
+        let js_args: TaddhitantaArgs = match serde_wasm_bindgen::from_value(val) {
+            Ok(args) => args,
+            Err(e) => {
+                error(&format!("[vidyut] deriveTaddhitantas parse error: {e:?}"));
+                return empty_prakriyas();
+            }
+        };
 
         match js_args.into_rust() {
             Ok(args) => {
@@ -455,7 +490,7 @@ impl Vidyut {
             }
             Err(_) => {
                 error(&format!("[vidyut] Derivation error"));
-                serde_wasm_bindgen::to_value(&Vec::<WebPrakriya>::new()).expect("wasm")
+                empty_prakriyas()
             }
         }
     }
@@ -468,7 +503,7 @@ impl Vidyut {
             Ok(args) => args,
             Err(e) => {
                 error(&format!("[vidyut] deriveStryantas parse error: {:?}", e));
-                return serde_wasm_bindgen::to_value(&Vec::<WebPrakriya>::new()).expect("wasm");
+                return empty_prakriyas();
             }
         };
 
@@ -500,12 +535,12 @@ impl Vidyut {
                 }
                 Err(e) => {
                     error(&format!("[vidyut] Krdanta conversion error: {:?}", e));
-                    return serde_wasm_bindgen::to_value(&Vec::<WebPrakriya>::new()).expect("wasm");
+                    return empty_prakriyas();
                 }
             },
             _ => {
                 error("[vidyut] Invalid pratipadika args for stryantas");
-                return serde_wasm_bindgen::to_value(&Vec::<WebPrakriya>::new()).expect("wasm");
+                return empty_prakriyas();
             }
         };
 

@@ -1,7 +1,44 @@
-/target
+# Rust build output and editor backups.
+/target/
+**/*.rs.bk
+
+# WebAssembly and JavaScript package output. The source lives in bindings-ts/;
+# wasm-pack recreates these files during each build.
+/bindings-ts/pkg/
+/bindings-ts/bin/
+/bindings-ts/wasm-pack.log
+/bindings-ts/tests/*.js
+/bindings-ts/tests/*.js.map
+
+# Node package-manager and TypeScript build artifacts.
+**/node_modules/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Python virtual environments, test/coverage output, and extension modules.
+**/.venv/
+**/venv/
+**/env/
+**/__pycache__/
+*.py[cod]
+*.so
+.coverage
+*.lcov
+
+# Local configuration and operating-system/editor metadata. Keep checked-in
+# examples such as .env.example explicit and versioned.
+.env
+.env.*
+!.env.example
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Large generated datasets are reproducible from their source scripts.
 /vidyut-data/data/
 /vidyut-data/dcs-data/
 *.log
-
-# Webstorm
-.idea

@@ -20,3 +20,9 @@ wasm-bindgen = "0.2"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
+
+[features]
+# Preserve the standalone wasm-pack API. Aggregating crates, such as bindings-ts, can opt out to
+# avoid exporting colliding JavaScript symbol names.
+default = ["wasm-bindings"]
+wasm-bindings = []

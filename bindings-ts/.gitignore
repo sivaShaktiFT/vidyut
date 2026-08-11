@@ -1,6 +1,12 @@
-/target
+# This crate can also be built independently of the workspace.
+/target/
 **/*.rs.bk
 Cargo.lock
-bin/
-pkg/
-wasm-pack.log
+/bin/
+/pkg/
+/wasm-pack.log
+/tests/*.js
+/tests/*.js.map
+*.tsbuildinfo
+node_modules/
+npm-debug.log*

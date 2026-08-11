@@ -1,8 +1,11 @@
 [package]
 name = "bindings-ts"
 version = "0.1.0"
-authors = ["Ronit <98030646+ronit-sh@users.noreply.github.com>"]
-edition = "2018"
+authors = ["Ambuda <ambuda.library@gmail.com>"]
+description = "WebAssembly and TypeScript bindings for Vidyut"
+license = "MIT"
+repository = "https://github.com/ambuda-org/vidyut"
+edition = "2021"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
@@ -12,6 +15,12 @@ default = ["console_error_panic_hook"]
 
 [dependencies]
 wasm-bindgen = "0.2.84"
+serde = { version = "1", features = ["derive"] }
+serde-wasm-bindgen = "0.4"
+vidyut-chandas = { path = "../vidyut-chandas", default-features = false }
+vidyut-lipi = { path = "../vidyut-lipi", default-features = false }
+vidyut-prakriya = { path = "../vidyut-prakriya" }
+vidyut-sandhi = { path = "../vidyut-sandhi", default-features = false }
 
 # The `console_error_panic_hook` crate provides better debugging of panics by
 # logging them with `console.error`. This is great for development but requires

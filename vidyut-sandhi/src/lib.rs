@@ -10,4 +10,5 @@ mod errors;
 mod generator;
 mod sounds;
 mod splitter;
+#[cfg(feature = "wasm-bindings")]
 mod wasm;
