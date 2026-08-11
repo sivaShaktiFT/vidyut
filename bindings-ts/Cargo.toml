@@ -1,9 +1,9 @@
 [package]
 name = "bindings-ts"
-version = "0.2.4"
+version = "0.2.6"
 authors = ["Ambuda <ambuda.library@gmail.com>", "Ronit<ronit@siva.sh>"]
 description = "Universal WebAssembly and TypeScript bindings for Vidyut"
-keywords = ["vidyut", "sanskrit", "transliteration", "sandhi"]
+keywords = ["vidyut", "sanskrit", "transliteration", "sandhi", "chanda", "vyakarana"]
 license = "MIT"
 repository = "https://github.com/sivashaktift/vidyut"
 edition = "2021"

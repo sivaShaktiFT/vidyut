@@ -79,7 +79,7 @@ await Promise.all([
 ]);
 
 packageJson.name = "@siva-sh/vidyut";
-packageJson.keywords = ["vidyut", "sanskrit", "translaiteration", "sandhi"];
+packageJson.keywords = ["vidyut", "sanskrit", "transliteration", "sandhi", "chanda", "vyakarana"];
 packageJson.publishConfig = {
   ...packageJson.publishConfig,
   access: "public",
