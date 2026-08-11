@@ -67,6 +67,67 @@ Pass grammar text to Vidyut in SLP1; transliterate at the application boundary. 
 values are strings such as `"Bhvadi"`, `"Lat"`, and `"Kartari"`. A `KrdantaArgs` value requires
 exactly one of `krt` or `unadi`.
 
+### Supported transliteration schemes
+
+Pass one of these `Scheme` enum members to `transliterate(input, from, to)`. The first group
+contains Unicode scripts; the second contains romanization and input encodings.
+
+```ts
+// Scripts
+Scheme.Assamese
+Scheme.Balinese
+Scheme.Bengali
+Scheme.Bhaiksuki
+Scheme.Brahmi
+Scheme.Burmese
+Scheme.Cham
+Scheme.Devanagari
+Scheme.Dogra
+Scheme.Grantha
+Scheme.Gujarati
+Scheme.GunjalaGondi
+Scheme.Gurmukhi
+Scheme.Javanese
+Scheme.Kaithi
+Scheme.Kannada
+Scheme.Kharoshthi
+Scheme.Khmer
+Scheme.Khudawadi
+Scheme.Limbu
+Scheme.Malayalam
+Scheme.MeeteiMayek
+Scheme.MasaramGondi
+Scheme.Modi
+Scheme.Mon
+Scheme.Nandinagari
+Scheme.Newa
+Scheme.Odia
+Scheme.OlChiki
+Scheme.Saurashtra
+Scheme.Sharada
+Scheme.Siddham
+Scheme.Sinhala
+Scheme.Soyombo
+Scheme.TaiTham
+Scheme.Takri
+Scheme.Tamil
+Scheme.Telugu
+Scheme.Thai
+Scheme.Tibetan
+Scheme.Tirhuta
+Scheme.ZanabazarSquare
+
+// Romanization and input encodings
+Scheme.BarahaSouth
+Scheme.HarvardKyoto
+Scheme.Iast
+Scheme.Iso15919
+Scheme.Itrans
+Scheme.Slp1
+Scheme.Velthuis
+Scheme.Wx
+```
+
 ## Runtime support
 
 The package uses conditional exports: Node.js receives a native Node WASM loader; browsers and
