@@ -31,18 +31,13 @@ root TypeScript declaration file.
 - Node smoke test — transliteration, sandhi, and word generation pass with the Node loader.
 - Browser-loader smoke test — the browser ES-module loader initializes from explicit WASM bytes
   and transliterates successfully.
+- Playwright browser smoke test — Firefox loaded `tests/web-smoke.html` over HTTP; its status
+  reported success, `vidyut_bg.wasm` returned HTTP 200, and the console had no errors or warnings.
 - `npm run test:types` — strict NodeNext TypeScript API check passes.
 - `cargo fmt --check` and `cargo test -p bindings-ts` — pass (4 unit tests).
 - `npm pack --dry-run --json` — verifies the publishable tarball contains both loaders and both
   WASM artefacts; a clean temporary install imported the package root successfully in Node.
 - `git diff --check` — passes.
-
-## Residual risk
-
-The existing `tests/web-smoke.html` remains the real-browser integration fixture. The local
-Playwright CLI wrapper could not start because its requested `playwright-cli` executable was not
-available from the installed npm package, so this audit validated the browser loader directly but
-did not rerun that fixture in Chromium. This is a tooling limitation, not a known package defect.
 
 The workspace emits pre-existing warnings from `vidyut-lipi` and `vidyut-prakriya`; none originate
 in `bindings-ts`.
