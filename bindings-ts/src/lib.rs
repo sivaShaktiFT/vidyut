@@ -21,10 +21,13 @@ fn is_slp1_text_byte(byte: u8) -> bool {
 }
 
 fn ensure_slp1_text(input: &str, api: &str) -> Result<(), JsError> {
-    if let Some(byte) = input.bytes().find(|byte| !is_slp1_text_byte(*byte)) {
+    if let Some(character) = input
+        .chars()
+        .find(|character| !character.is_ascii() || !is_slp1_text_byte(*character as u8))
+    {
         Err(JsError::new(&format!(
             "{api} accepts SLP1 text only (invalid character: {:?})",
-            byte as char
+            character
         )))
     } else {
         Ok(())
@@ -123,19 +126,18 @@ fn web_aksharas(rows: &[Vec<vidyut_chandas::Akshara>]) -> Vec<Vec<WebAkshara>> {
 }
 
 fn default_chandas() -> &'static RustChandas {
-    DEFAULT_CHANDAS
-        .get_or_init(|| {
-            let catalogue: MeterCatalogue = serde_json::from_str(DEFAULT_METERS_JSON)
-                .expect("bundled metre JSON must be valid at build time");
-            let meters_tsv = catalogue
-                .meters
-                .into_iter()
-                .map(|meter| format!("{}\t{}\t{}", meter.name, meter.kind, meter.pattern))
-                .collect::<Vec<_>>()
-                .join("\n");
-            RustChandas::from_text(meters_tsv)
-                .expect("bundled metre definitions must be valid at build time")
-        })
+    DEFAULT_CHANDAS.get_or_init(|| {
+        let catalogue: MeterCatalogue = serde_json::from_str(DEFAULT_METERS_JSON)
+            .expect("bundled metre JSON must be valid at build time");
+        let meters_tsv = catalogue
+            .meters
+            .into_iter()
+            .map(|meter| format!("{}\t{}\t{}", meter.name, meter.kind, meter.pattern))
+            .collect::<Vec<_>>()
+            .join("\n");
+        RustChandas::from_text(meters_tsv)
+            .expect("bundled metre definitions must be valid at build time")
+    })
 }
 
 /// Classify Sanskrit verse against Vidyut's bundled traditional-vrtta catalogue.
@@ -153,15 +155,12 @@ impl Chandas {
     /// Return the best matching metre for SLP1 text.
     pub fn classify(&self, text: &str) -> Result<JsValue, JsError> {
         ensure_slp1_text(text, "Chandas")?;
-        let result = default_chandas().classify_all(text);
-        let best_match = result
-            .padyas()
-            .iter()
-            .zip(result.match_types())
-            .max_by_key(|(_, match_type)| **match_type);
+        // Use the native single-match API so its documented catalogue ordering resolves ties.
+        // `Iterator::max_by_key` would choose the last equal match instead.
+        let result = default_chandas().classify(text);
         let value = WebMatch {
-            name: best_match.map(|(padya, _)| padya.name().to_owned()),
-            match_type: web_match_type(best_match.map_or(MatchType::None, |(_, m)| *m)),
+            name: result.padya().as_ref().map(|padya| padya.name().to_owned()),
+            match_type: web_match_type(result.match_type()),
             aksharas: web_aksharas(result.aksharas()),
         };
         to_js_value(&value)
@@ -326,15 +325,16 @@ impl Sandhi {
     /// Return all possible splits at an SLP1 boundary offset.
     ///
     /// SLP1 is ASCII, so byte offsets are also character offsets. `0` is before the first
-    /// character and `input.length` is after the last; these edge boundaries return an empty
-    /// array. Use `splitAll` when the desired boundary is not known in advance.
+    /// character and has no split with a non-empty first part. `input.length` is after the last
+    /// character and includes word-final analyses such as visarga reconstructions. Use
+    /// `splitAll` when the desired boundary is not known in advance.
     #[wasm_bindgen(js_name = splitAt)]
     pub fn split_at(&self, input: &str, offset: usize) -> Result<JsValue, JsError> {
         ensure_slp1_text(input, "Sandhi")?;
         if offset > input.len() {
             return Err(JsError::new("offset must be between 0 and input.length"));
         }
-        if offset == 0 || offset == input.len() {
+        if offset == 0 {
             return to_js_value(&Vec::<WebSplit>::new());
         }
         let splits: Vec<WebSplit> = default_sandhi()

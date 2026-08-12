@@ -1,94 +1,81 @@
-# TypeScript binding notes
+# `bindings-ts` architecture and release readiness
 
-## What was built
+`bindings-ts` publishes `@siva-sh/vidyut`: a browser-first, ESM-only WebAssembly package for the
+web-capable parts of Vidyut. This document is the package's single source of operational context
+and release-readiness criteria.
 
-The previous directory was the unmodified `wasm-pack` template. It is now an integration crate
-that exports a single WebAssembly API over Vidyut's standalone web-capable crates:
+## Project structure
 
-| Rust crate | TypeScript surface | Data needed in browser |
+| Path | Purpose |
+| --- | --- |
+| `src/lib.rs` | Rust integration layer, input validation, result serialization, and public WASM exports. |
+| `data/meters.json` | Checked-in vṛtta catalogue embedded in the WASM binary at build time. |
+| `api.d.ts` | Hand-authored public TypeScript API; the build adds grammar enum unions derived from wasm-bindgen output. |
+| `build.mjs` | Reproducible package assembly: builds WASM, enforces size budgets, creates the facade and declarations, and atomically promotes `pkg/`. |
+| `tests/` | Type, loader, browser, package-consumer, Next.js production, and WASM regression tests. |
+| `README.md` | Consumer-facing installation, runtime, framework, and API guidance. |
+| `pkg/` | Generated publishable artifact; never edit it directly. |
+
+The package combines these Vidyut crates:
+
+| Rust crate | TypeScript surface | Browser data |
 | --- | --- | --- |
-| `vidyut-lipi` | `Scheme`, `detect`, `transliterate` | none |
-| `vidyut-chandas` | `Chandas` | bundled vṛtta catalogue |
-| `vidyut-sandhi` | `Sandhi` | built-in generated rules |
-| `vidyut-prakriya` | `Vyakarana` | none |
+| `vidyut-lipi` | `Scheme`, `detect`, `transliterate` | None |
+| `vidyut-chandas` | `Chandas` | Embedded metre catalogue |
+| `vidyut-sandhi` | `Sandhi` | Generated built-in rules |
+| `vidyut-prakriya` | `Vyakarana` | None |
 
-The wrapper returns plain JavaScript objects for results rather than exposing Rust-owned objects.
-That keeps the API easy to serialize, render, cache, and use in React state. The published package
-exposes a curated JavaScript facade and a hand-authored declaration file.
-This keeps legacy wasm-bindgen internals out of the public contract and makes method parameters
-and return values type-check as the named interfaces.
+Results cross the WASM boundary as plain JavaScript objects. The generated wasm-bindgen module is
+kept private behind a small facade; `api.d.ts` defines the supported contract rather than exposing
+the generated internals.
 
-## Important design choices
+## Public contract and design constraints
 
-- Browser input for grammar, metre, and sandhi is SLP1. It is Vidyut's native format and every
-  sound is one ASCII byte, so sandhi boundaries can safely use string indexes. User interfaces can
-  transliterate at input and output boundaries.
-- `Chandas` embeds Vidyut's vṛtta catalogue for immediate metre lookup. The checked-in JSON is a
-  build-time input only: applications cannot supply, fetch, or configure another catalogue.
-- `Sandhi` now exposes reverse analysis as well as joining. `splitAll` follows the native splitter:
-  it stops at the first non-SLP1 character, so no candidate crosses whitespace or punctuation.
-  Callers should use `isValid` and lexical context to rank candidates.
-- `Vyakarana` retains Vidyut's mature object contract rather than duplicating its very large enum
-  vocabulary in JavaScript. Grammar enum values are the source-of-truth Rust names as strings;
-  numeric legacy WASM enums are deliberately not public API.
-- Grammar input is validated at both boundaries. TypeScript models `upapada` as all-or-nothing and
-  `PratipadikaArgs` as exactly one variant; Rust revalidates untyped JavaScript input. Conversion
-  failures throw recoverable `Error`s, never panic, log-only, return a placeholder form, or reuse
-  `[]` (which means a valid derivation produced no forms).
-- The release profile is set at the workspace root, where Cargo actually applies it. Browser
-  package builds optimize for size without release debug information or incremental artifacts.
-- npm metadata and the packaged `LICENSE-MIT` now use the same MIT license.
+- The root and `@siva-sh/vidyut/browser` exports are the same browser loader. There is no CommonJS
+  entry point or duplicate Node-specific WASM binary.
+- Call `await init()` before using the API. Concurrent asynchronous calls share one promise and a
+  failed initialization can be retried. `initSync({ module })` is only for already-loaded bytes or
+  a compiled `WebAssembly.Module`, usually in a Worker.
+- Node.js ESM callers can pass bytes from the `wasm-url` export to `init`; browser bundlers load the
+  packaged asset by default.
+- `Chandas`, `Sandhi`, and `Vyakarana` are WASM objects. Construct them after initialization and
+  release them with `.free()` in `finally` blocks or framework cleanup.
+- Sandhi, metre, and grammar inputs use SLP1. Validation reports the actual unsupported Unicode
+  character. SLP1’s ASCII representation makes `splitAt` offsets safe DOM-style boundaries:
+  `0` cannot produce a non-empty first segment, while `input.length` includes word-final analyses
+  such as visarga reconstructions.
+- `Chandas.classify` preserves the native catalogue’s first-match priority, including tied metre
+  patterns. `classifyAll` and `findMeters` expose all matches.
+- Grammar values are source-of-truth Rust enum names represented as TypeScript string unions.
+  `PratipadikaArgs` is exactly one variant and `KrdantaArgs` requires exactly one of `krt` or
+  `unadi`; untyped JavaScript is revalidated in Rust and failures are recoverable errors.
+- `vidyut-cheda` and `vidyut-kosha` are intentionally excluded because their model and dictionary
+  data require an explicit asynchronous, versioned data-source design.
 
-## Scope boundary
+## Build and publication
 
-`vidyut-cheda` and `vidyut-kosha` are data-backed. Their models and databases are too large and
-deployment-specific to silently embed in a general web package. A future browser binding should
-first define an explicit async data source (for example, URL/`ArrayBuffer` loading plus versioned
-cache keys) before exposing either API. This avoids an API that appears usable but fails at runtime
-without opaque local files.
+Run `npm run build` from this directory. It requires exactly `wasm-pack 0.15.0`, invokes
+`wasm-pack build --target web --release`, limits the artifact to 1.2 MB raw and 450 KB gzip, and
+only replaces `pkg/` after every generated file succeeds. The package includes the browser assets,
+README, and MIT license; generated bindgen files remain package-private implementation details.
 
-## Verification status
+Use `npm run pack` to inspect an npm tarball locally. `npm run publish:npm` runs the full test suite
+before publishing with public npm access.
 
-The package is compiled with `wasm-pack --target web`. Native tests cover transliteration, metre
-identification, and forward/reverse sandhi. WASM tests cover the browser exports. The TypeScript
-contract includes positive inference checks and negative
-`@ts-expect-error` cases for partial `upapada` and multi-variant `PratipadikaArgs`. Runtime
-validation must additionally verify malformed grammar objects reject while a following valid call
-still succeeds, and that `splitAll("ca iti")` never returns a cross-chunk split. The default web
-artifact must be initialized with `await init()`. The README uses the explicit
-`@siva-sh/vidyut/browser` entry for Next.js Client Components so a framework server build cannot
-accidentally select the Node loader.
+## Release-readiness checklist
 
-`tests/typecheck.ts` type-checks the generated declaration file with TypeScript. The release suite
-also packs the package into a temporary Next.js application, production-builds it, and exercises it
-in Chromium. `wasm-pack test --headless --chrome` remains available as an additional check on
-targets that provide chromedriver, but is not required for publication.
+`npm test` is the release gate. It covers:
 
-## Next.js and WASM loading
+- building the production artifact and its size budget;
+- strict TypeScript checks with browser and Node-oriented library settings;
+- async and sync loader behavior, retry behavior, and initialization caching;
+- real-browser smoke coverage with Playwright;
+- packed-package runtime and declaration resolution;
+- a packed Next.js production build and Chromium deployment smoke test;
+- native and Node WASM tests, including grammar error recovery;
+- regressions for tied metre priority, final-boundary sandhi analysis, invalid Unicode diagnostics,
+  and chunk-limited reverse sandhi.
 
-- The package root is the browser loader. Next.js Client Components can import either the root or
-  the explicit `@siva-sh/vidyut/browser` alias; both have identical runtime and TypeScript
-  contracts. The package deliberately omits a duplicate Node WASM binary and CommonJS loader.
-- The browser loader's default `init()` is the performance default. It resolves the packaged WASM
-  URL, uses `instantiateStreaming` when possible, and keeps the binary out of the JavaScript
-  bundle. A shared promise prevents duplicate fetches and must reset after rejection so a temporary
-  network failure remains retryable.
-- wasm-bindgen generates `initSync`, but it can only instantiate bytes or an existing
-  `WebAssembly.Module`; browsers cannot synchronously fetch a `.wasm` asset. The curated TypeScript
-  declaration now exposes that API as `initSync({ module })` and the package exports `wasm-url` to
-  obtain the bundler-managed asset URL.
-- Synchronous compilation blocks the invoking thread. The binding is about 1 MB raw, so the sync
-  API is an opt-in Worker tool for callers that have already loaded bytes, not a main-thread React
-  startup shortcut. Do not base64-inline the binary merely to avoid `await`: it increases JS parse
-  and decode work and loses streaming compilation.
-- `Sandhi`, `Chandas`, and `Vyakarana` allocate WASM-side resources. Create them after initialization
-  and free them in `finally` blocks or effect cleanup; never allocate them during a React render.
-
-## Package build layout
-
-`bindings-ts/build.mjs` is the package-level build entrypoint. It removes stale generated output,
-builds the web target, enforces the WASM size budget, and prepares the
-published metadata, declarations, and assets. Keeping this lifecycle in one file avoids a separate
-`scripts/` directory while preserving deterministic builds and `npm run build` as the single public
-command. It requires `wasm-pack 0.15.0` so generated glue remains compatible with the curated
-facade and declarations.
+`wasm-pack test --headless --chrome` is an additional browser-target check when chromedriver is
+available. Before publication, confirm `npm test` succeeds on the release commit and inspect
+`npm pack --dry-run` if package contents or build tooling changed.

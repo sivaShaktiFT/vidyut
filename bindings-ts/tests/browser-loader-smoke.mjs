@@ -20,7 +20,8 @@ const sandhi = new Sandhi();
 try {
   assert.deepEqual(sandhi.splitAt("ceti", 0), []);
   assert.ok(sandhi.splitAt("ceti", 2).some((split) => split.first === "ca" && split.second === "iti"));
-  assert.throws(() => sandhi.splitAll("राम"), /SLP1/);
+  assert.ok(sandhi.splitAt("rAmaH", 5).some((split) => split.first === "rAmas" && split.second === ""));
+  assert.throws(() => sandhi.splitAll("राम"), /invalid character: 'र'/);
 } finally {
   sandhi.free();
 }
@@ -28,6 +29,7 @@ try {
 const chandas = new Chandas();
 try {
   assert.ok(chandas.classifyAll("mAtaH samastajagatAM maDukEwaBAreH").names.includes("vasantatilakA"));
+  assert.equal(chandas.classify("gA ga ga gA gA gA ga ga gA gA").name, "paNkti");
 } finally {
   chandas.free();
 }

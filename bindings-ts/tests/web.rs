@@ -22,14 +22,14 @@ fn joins_sandhi_in_wasm() {
 }
 
 #[wasm_bindgen_test]
-fn classifies_jati_as_the_best_available_match() {
+fn classifies_the_highest_priority_matching_metre() {
     let chandas = Chandas::new();
-    // AryA has four padas with 12, 18, 12, and 15 matras. This sequence has 28 guru syllables.
+    // This sequence matches both a catalogue metre and the jAti AryA; catalogue priority wins.
     let result = chandas.classify(&"gA ".repeat(28)).unwrap();
     let result: serde_json::Value = serde_wasm_bindgen::from_value(result).unwrap();
 
-    assert_eq!(result["name"], "AryA");
-    assert_eq!(result["matchType"], "full");
+    assert_eq!(result["name"], "vidyunmAlA");
+    assert_eq!(result["matchType"], "prefix");
 }
 
 #[wasm_bindgen_test]
@@ -42,6 +42,28 @@ fn serializes_an_absent_metre_name_as_null() {
 
     assert!(result["name"].is_null());
     assert_eq!(result["matchType"], "none");
+}
+
+#[wasm_bindgen_test]
+fn classifies_matching_metres_in_catalogue_order() {
+    let chandas = Chandas::new();
+    // Several metres match this pattern. The catalogue prioritizes paNkti.
+    let result = chandas.classify("gA ga ga gA gA gA ga ga gA gA").unwrap();
+    let result: serde_json::Value = serde_wasm_bindgen::from_value(result).unwrap();
+
+    assert_eq!(result["name"], "paNkti");
+    assert_eq!(result["matchType"], "pada");
+}
+
+#[wasm_bindgen_test]
+fn splits_at_the_final_boundary() {
+    let sandhi = Sandhi::new();
+    let result = sandhi.split_at("rAmaH", 5).unwrap();
+    let result: serde_json::Value = serde_wasm_bindgen::from_value(result).unwrap();
+
+    assert!(result.as_array().unwrap().iter().any(|split| {
+        split["first"] == "rAmas" && split["second"] == "" && split["kind"] == "standard"
+    }));
 }
 
 #[derive(Serialize)]
