@@ -3,8 +3,6 @@
 //! This crate intentionally presents the independent Vidyut tools as one npm package. Build it
 //! with `wasm-pack` to generate the JavaScript loader and TypeScript declarations.
 
-mod utils;
-
 use serde::{Deserialize, Serialize};
 use std::sync::OnceLock;
 use vidyut_chandas::{Chandas as RustChandas, MatchType, Weight};
@@ -104,19 +102,9 @@ fn to_js_value<T: Serialize>(value: &T) -> Result<JsValue, JsError> {
     serde_wasm_bindgen::to_value(value).map_err(|error| JsError::new(&error.to_string()))
 }
 
-/// Install a useful panic hook for browser development.
-///
-/// Call this once during application startup. All constructors also call it, so doing so is
-/// optional; explicitly calling it makes the intent clear in application code.
-#[wasm_bindgen]
-pub fn initialize() {
-    utils::set_panic_hook();
-}
-
 /// Transliterate Sanskrit text between any two supported scripts or encodings.
 #[wasm_bindgen]
 pub fn transliterate(input: &str, from: Scheme, to: Scheme) -> String {
-    utils::set_panic_hook();
     Lipika::new().transliterate(input, from, to)
 }
 
@@ -125,7 +113,6 @@ pub fn transliterate(input: &str, from: Scheme, to: Scheme) -> String {
 /// If the input is ambiguous, this returns `Scheme::HarvardKyoto`, matching Vidyut's native API.
 #[wasm_bindgen]
 pub fn detect(input: &str) -> Scheme {
-    utils::set_panic_hook();
     detect_scheme(input).unwrap_or(Scheme::HarvardKyoto)
 }
 
@@ -228,7 +215,6 @@ impl Chandas {
     /// Create a metre classifier with Vidyut's bundled catalogue of traditional vrittas.
     #[wasm_bindgen(constructor)]
     pub fn new() -> Chandas {
-        utils::set_panic_hook();
         Chandas {
             inner: default_chandas(),
         }
@@ -347,7 +333,6 @@ impl Sandhi {
     /// Create an engine using Vidyut's built-in external-sandhi rules.
     #[wasm_bindgen(constructor)]
     pub fn new() -> Sandhi {
-        utils::set_panic_hook();
         let rules = generate_rules();
         let splitter = splitter_from_rules(&rules);
         Sandhi { rules, splitter }
@@ -400,21 +385,23 @@ impl Sandhi {
         to_js_value(&rules)
     }
 
-    /// Return all possible splits at an SLP1 byte index.
+    /// Return all possible splits at an SLP1 boundary offset.
     ///
-    /// SLP1 is ASCII, so byte offsets are also character offsets. Use `splitAll` when the desired
-    /// boundary is not known in advance.
+    /// SLP1 is ASCII, so byte offsets are also character offsets. `0` is before the first
+    /// character and `input.length` is after the last; these edge boundaries return an empty
+    /// array. Use `splitAll` when the desired boundary is not known in advance.
     #[wasm_bindgen(js_name = splitAt)]
-    pub fn split_at(&self, input: &str, index: usize) -> Result<JsValue, JsError> {
+    pub fn split_at(&self, input: &str, offset: usize) -> Result<JsValue, JsError> {
         ensure_slp1_text(input, "Sandhi")?;
-        if input.is_empty() || index >= input.len() {
-            return Err(JsError::new(
-                "index must identify a byte in a non-empty input string",
-            ));
+        if offset > input.len() {
+            return Err(JsError::new("offset must be between 0 and input.length"));
+        }
+        if offset == 0 || offset == input.len() {
+            return to_js_value(&Vec::<WebSplit>::new());
         }
         let splits: Vec<WebSplit> = self
             .splitter
-            .split_at(input, index)
+            .split_at(input, offset - 1)
             .into_iter()
             .map(web_split)
             .collect();
@@ -449,7 +436,6 @@ impl Vyakarana {
     /// Create a word generator.
     #[wasm_bindgen(constructor)]
     pub fn new() -> Vyakarana {
-        utils::set_panic_hook();
         Vyakarana {
             inner: vidyut_prakriya::wasm::Vidyut::init(),
         }

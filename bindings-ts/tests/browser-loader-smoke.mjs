@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import assert from "node:assert/strict";
 import init, { Scheme, transliterate } from "../pkg/browser/vidyut.js";
 
+assert.throws(() => transliterate("rAma", Scheme.Slp1, Scheme.Devanagari));
 await assert.rejects(init({ module_or_path: new Uint8Array([0]) }));
 
 const wasm = await readFile(new URL("../pkg/browser/vidyut_bg.wasm", import.meta.url));

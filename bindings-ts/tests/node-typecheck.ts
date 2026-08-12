@@ -1,6 +1,5 @@
-import { Chandas, Sandhi, Scheme, Vyakarana, detect, initialize, transliterate } from "../pkg/node/vidyut.mjs";
+import { Chandas, Sandhi, Scheme, Vyakarana, detect, transliterate } from "../pkg/node/vidyut.mjs";
 
-initialize();
 void detect("rAma");
 void transliterate("rAma", Scheme.Slp1, Scheme.Devanagari);
 new Chandas().classify("mAtaH samastajagatAM maDukEwaBAreH");

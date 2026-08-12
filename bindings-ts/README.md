@@ -1,7 +1,7 @@
 # Vidyut for JavaScript and TypeScript
 
 `@siva-sh/vidyut` is a production-ready WebAssembly interface to Vidyut's Sanskrit tools. It runs
-in modern ESM Node.js, browsers, browser bundlers, workers, and Next.js Client Components, with a
+in Node.js (ESM and CommonJS), browsers, browser bundlers, workers, and Next.js Client Components, with a
 typed API for transliteration, metre classification, sandhi analysis, and word generation.
 
 ## Find metres with the built-in catalogue
@@ -31,10 +31,9 @@ binary at build time. There is no runtime data fetch, data-file import, or catal
 npm install @siva-sh/vidyut
 ```
 
-## Node.js (ESM)
+## Node.js
 
-Node.js loads its WebAssembly implementation synchronously, so no setup is required. The package
-is ESM-only: use `import`, not CommonJS `require()`.
+Node.js loads its WebAssembly implementation synchronously, so no setup is required.
 
 ```ts
 import { Sandhi, Scheme, transliterate } from "@siva-sh/vidyut";
@@ -43,11 +42,19 @@ console.log(transliterate("rAma", Scheme.Slp1, Scheme.Devanagari)); // राम
 console.log(new Sandhi().join("ca", "iti")); // ceti
 ```
 
+CommonJS is also supported:
+
+```js
+const { Sandhi, Scheme, transliterate } = require("@siva-sh/vidyut");
+```
+
 ## Browser applications
 
 Call the default initializer once before using the API. Vite, webpack, Rollup, and comparable
 tools select the browser build from the package root automatically. The initializer loads the
 packaged WASM asset, shares concurrent calls, and allows a retry after a failed fetch or compile.
+Calling an API before initialization throws; await the initializer before constructing or using
+Vidyut objects.
 
 ```ts
 import init, { Scheme, transliterate } from "@siva-sh/vidyut";
@@ -173,8 +180,9 @@ exactly one of `krt` or `unadi`.
 `Chandas` and `Sandhi` accept SLP1 text and reject invalid characters. Whitespace, apostrophes,
 `|`, and `~` are supported alongside the SLP1 alphabet. When several sandhi rules have the same
 specificity, `Sandhi.join` uses the first rule in Vidyut's generated precedence order; use `rules()`
-when an application needs to inspect that table. `splitAt(input, index)` uses the index of the last
-character in the first segment; use `splitAll` when the boundary is not already known.
+when an application needs to inspect that table. `splitAt(input, offset)` uses the same boundary
+offsets as DOM selections: `0` is before the first character and `input.length` is after the last.
+Use `splitAll` when the boundary is not already known.
 
 ### Supported transliteration schemes
 

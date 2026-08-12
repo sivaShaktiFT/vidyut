@@ -9,7 +9,10 @@ const metre = chandas.classify("mAtaH samastajagatAM maDukEwaBAreH");
 const meterMatches = chandas.findMeters("mAtaH samastajagatAM maDukEwaBAreH");
 const sandhiEngine = new Sandhi();
 const rules = sandhiEngine.rules();
-const splits = sandhiEngine.splitAt("ceti", 1);
+const splits = sandhiEngine.splitAt("ceti", 2);
+assert.deepEqual(sandhiEngine.splitAt("ceti", 0), []);
+assert.deepEqual(sandhiEngine.splitAt("ceti", 4), []);
+assert.throws(() => sandhiEngine.splitAt("ceti", 5), /offset/);
 const vyakarana = new Vyakarana();
 const dhatu = { aupadeshika: "BU", gana: "Bhvadi", prefixes: [], sanadi: [] };
 const forms = vyakarana.deriveTinantas({

@@ -38,6 +38,7 @@ const metre: Classification = new Chandas().classify(
     "mAtaH samastajagatAM maDukEwaBAreH",
 );
 const splits: SandhiSplit[] = new Sandhi().splitAll("ceti");
+const boundarySplits: SandhiSplit[] = new Sandhi().splitAt("ceti", 2);
 const bundledMeterMatches: MeterMatch[] = new Chandas().findMeters("mAtaH samastajagatAM maDukEwaBAreH");
 const derivations = new Vyakarana().deriveTinantas(args);
 const typedDerivations: Prakriya[] = derivations;
@@ -64,6 +65,7 @@ new Vyakarana().deriveSubantas({
 
 void metre;
 void splits;
+void boundarySplits;
 void bundledMeterMatches;
 void derivations;
 void typedDerivations;
