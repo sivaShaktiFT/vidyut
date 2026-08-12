@@ -1,0 +1,729 @@
+{
+  "meters": [
+    {
+      "name": "SrI",
+      "kind": "vrtta",
+      "pattern": "G"
+    },
+    {
+      "name": "strI",
+      "kind": "vrtta",
+      "pattern": "GG"
+    },
+    {
+      "name": "nArI",
+      "kind": "vrtta",
+      "pattern": "GGG"
+    },
+    {
+      "name": "mfgI",
+      "kind": "vrtta",
+      "pattern": "GLG"
+    },
+    {
+      "name": "kanyA",
+      "kind": "vrtta",
+      "pattern": "GGGG"
+    },
+    {
+      "name": "paNkti",
+      "kind": "vrtta",
+      "pattern": "GLLGG"
+    },
+    {
+      "name": "tanumaDyA",
+      "kind": "vrtta",
+      "pattern": "GGLLGG"
+    },
+    {
+      "name": "SaSivadanA",
+      "kind": "vrtta",
+      "pattern": "LLLLGG"
+    },
+    {
+      "name": "vasumatI",
+      "kind": "vrtta",
+      "pattern": "GGLLLG"
+    },
+    {
+      "name": "maDumatI",
+      "kind": "vrtta",
+      "pattern": "LLLLLLG"
+    },
+    {
+      "name": "madaleKA",
+      "kind": "vrtta",
+      "pattern": "GGGLLGG"
+    },
+    {
+      "name": "kumAralalitA",
+      "kind": "vrtta",
+      "pattern": "LGLLLGG"
+    },
+    {
+      "name": "haMsamAlA",
+      "kind": "vrtta",
+      "pattern": "LLGGLGG"
+    },
+    {
+      "name": "vidyunmAlA",
+      "kind": "vrtta",
+      "pattern": "GGGG|GGGG"
+    },
+    {
+      "name": "citrapadA",
+      "kind": "vrtta",
+      "pattern": "GLLGLLGG"
+    },
+    {
+      "name": "mARavaka",
+      "kind": "vrtta",
+      "pattern": "GLLGGLLG"
+    },
+    {
+      "name": "haMsaruta",
+      "kind": "vrtta",
+      "pattern": "GGGLLLGG"
+    },
+    {
+      "name": "samAnikA",
+      "kind": "vrtta",
+      "pattern": "GLGLGLGL"
+    },
+    {
+      "name": "pramARikA",
+      "kind": "vrtta",
+      "pattern": "LGLGLGLG"
+    },
+    {
+      "name": "campakamAlA",
+      "kind": "vrtta",
+      "pattern": "GLLGGGLLGG"
+    },
+    {
+      "name": "nArAcaka",
+      "kind": "vrtta",
+      "pattern": "GGLGLGLG"
+    },
+    {
+      "name": "halamuKI",
+      "kind": "vrtta",
+      "pattern": "GLGLLLLLG"
+    },
+    {
+      "name": "BujagaSiSuBftA",
+      "kind": "vrtta",
+      "pattern": "LLLLLLG|GG"
+    },
+    {
+      "name": "SudDavirAw",
+      "kind": "vrtta",
+      "pattern": "GGGLLGLGLG"
+    },
+    {
+      "name": "paRava",
+      "kind": "vrtta",
+      "pattern": "GGGLL|LLGGG"
+    },
+    {
+      "name": "mayUrasAriRI",
+      "kind": "vrtta",
+      "pattern": "GLGLGLGLGG"
+    },
+    {
+      "name": "rukmavatI",
+      "kind": "vrtta",
+      "pattern": "GLLGGGLLGG"
+    },
+    {
+      "name": "mattA",
+      "kind": "vrtta",
+      "pattern": "GGGG|LLLLGG"
+    },
+    {
+      "name": "manoramA",
+      "kind": "vrtta",
+      "pattern": "LLLGLGLGLG"
+    },
+    {
+      "name": "upasTitA",
+      "kind": "vrtta",
+      "pattern": "GG|LLGLLGLG"
+    },
+    {
+      "name": "indravajrA",
+      "kind": "vrtta",
+      "pattern": "GGLGGLLGLGG"
+    },
+    {
+      "name": "upendravajrA",
+      "kind": "vrtta",
+      "pattern": "LGLGGLLGLGG"
+    },
+    {
+      "name": "sAndrapada",
+      "kind": "vrtta",
+      "pattern": "GLLGGLLLLGG"
+    },
+    {
+      "name": "sumuKI",
+      "kind": "vrtta",
+      "pattern": "LLLLG|LLGLLG"
+    },
+    {
+      "name": "doDaka",
+      "kind": "vrtta",
+      "pattern": "GLLGLLGLLGG"
+    },
+    {
+      "name": "SAlinI",
+      "kind": "vrtta",
+      "pattern": "GGGG|GLGGLGG"
+    },
+    {
+      "name": "vAtormI",
+      "kind": "vrtta",
+      "pattern": "GGGG|LLGGLGG"
+    },
+    {
+      "name": "BramaravilasitaM",
+      "kind": "vrtta",
+      "pattern": "GGGG|LLLLLLG"
+    },
+    {
+      "name": "SrI",
+      "kind": "vrtta",
+      "pattern": "GLLGG|LLLLGG"
+    },
+    {
+      "name": "raTodDatA",
+      "kind": "vrtta",
+      "pattern": "GLGLLLGLGLG"
+    },
+    {
+      "name": "svAgatA",
+      "kind": "vrtta",
+      "pattern": "GLGLLLGLLGG"
+    },
+    {
+      "name": "vfntA",
+      "kind": "vrtta",
+      "pattern": "LLLL|LLLLGGG"
+    },
+    {
+      "name": "BadrikA",
+      "kind": "vrtta",
+      "pattern": "LLLLLLGLGLG"
+    },
+    {
+      "name": "SyenikA",
+      "kind": "vrtta",
+      "pattern": "GLGLGLGLGLG"
+    },
+    {
+      "name": "upasTita",
+      "kind": "vrtta",
+      "pattern": "LGLLLGGGLGG"
+    },
+    {
+      "name": "SiKaRqita",
+      "kind": "vrtta",
+      "pattern": "LGLLLGGGLGG"
+    },
+    {
+      "name": "mOktikamAlA",
+      "kind": "vrtta",
+      "pattern": "GLLGLLGGLLG"
+    },
+    {
+      "name": "candravartma",
+      "kind": "vrtta",
+      "pattern": "GLGLLLGLLLLG"
+    },
+    {
+      "name": "vaMSasTa",
+      "kind": "vrtta",
+      "pattern": "LGLGGLLGLGLG"
+    },
+    {
+      "name": "indravaMSA",
+      "kind": "vrtta",
+      "pattern": "GGLGGLLGLGLG"
+    },
+    {
+      "name": "towaka",
+      "kind": "vrtta",
+      "pattern": "LLGLLGLLGLLG"
+    },
+    {
+      "name": "drutavilambita",
+      "kind": "vrtta",
+      "pattern": "LLLGLLGLLGLG"
+    },
+    {
+      "name": "puwa",
+      "kind": "vrtta",
+      "pattern": "LLLLLLGGGLGG"
+    },
+    {
+      "name": "pramuditavadanA",
+      "kind": "vrtta",
+      "pattern": "LLLLLLGLGGLG"
+    },
+    {
+      "name": "mOktidadAma",
+      "kind": "vrtta",
+      "pattern": "LGLLGLLGLLGL"
+    },
+    {
+      "name": "kusumavicitrA",
+      "kind": "vrtta",
+      "pattern": "LLLLGG|LLLLGG"
+    },
+    {
+      "name": "jalodDatagati",
+      "kind": "vrtta",
+      "pattern": "LGLLLGLGLLLG"
+    },
+    {
+      "name": "BujaNgaprayAta",
+      "kind": "vrtta",
+      "pattern": "LGGLGGLGGLGG"
+    },
+    {
+      "name": "sragviRI",
+      "kind": "vrtta",
+      "pattern": "GLGGLGGLGGLG"
+    },
+    {
+      "name": "priyaMvadA",
+      "kind": "vrtta",
+      "pattern": "LLLGLLLGLGLG"
+    },
+    {
+      "name": "maRimAlA",
+      "kind": "vrtta",
+      "pattern": "GGLLGGGGLLGG"
+    },
+    {
+      "name": "lalitA",
+      "kind": "vrtta",
+      "pattern": "GGLGLLLGLGLG"
+    },
+    {
+      "name": "pramitAkzarA",
+      "kind": "vrtta",
+      "pattern": "LLGLGLLLGLLG"
+    },
+    {
+      "name": "ujjvalA",
+      "kind": "vrtta",
+      "pattern": "LLLLLLGLLGLG"
+    },
+    {
+      "name": "vESvadevI",
+      "kind": "vrtta",
+      "pattern": "GGGGG|GLGGLGG"
+    },
+    {
+      "name": "jalaDaramAlA",
+      "kind": "vrtta",
+      "pattern": "GGGG|LLLLGGGG"
+    },
+    {
+      "name": "navamAlinI",
+      "kind": "vrtta",
+      "pattern": "LLLL|GLGLLLGG"
+    },
+    {
+      "name": "praBA",
+      "kind": "vrtta",
+      "pattern": "LLLLLLGLGGLG"
+    },
+    {
+      "name": "mAlatI",
+      "kind": "vrtta",
+      "pattern": "LLLLGLLGLGLG"
+    },
+    {
+      "name": "paYcacAmara",
+      "kind": "vrtta",
+      "pattern": "LGLGLGLGLGLG"
+    },
+    {
+      "name": "tAmarasa",
+      "kind": "vrtta",
+      "pattern": "LLLLGLLGLLGG"
+    },
+    {
+      "name": "kzamA",
+      "kind": "vrtta",
+      "pattern": "LLLLLLGGLGGLG"
+    },
+    {
+      "name": "praharziRI",
+      "kind": "vrtta",
+      "pattern": "GGGLLLLGLGLGG"
+    },
+    {
+      "name": "rucirA",
+      "kind": "vrtta",
+      "pattern": "LGLGLLLLGLGLG"
+    },
+    {
+      "name": "mattamayUra",
+      "kind": "vrtta",
+      "pattern": "GGGG|GLLGGLLGG"
+    },
+    {
+      "name": "maYjuBAziRI",
+      "kind": "vrtta",
+      "pattern": "LLGLGLLLGLGLG"
+    },
+    {
+      "name": "nandinI",
+      "kind": "vrtta",
+      "pattern": "LLGLGLLLGLLGG"
+    },
+    {
+      "name": "candrikA",
+      "kind": "vrtta",
+      "pattern": "LLLL|LLGGLGLGG"
+    },
+    {
+      "name": "asambADA",
+      "kind": "vrtta",
+      "pattern": "GGGGG|LLLLLLGGG"
+    },
+    {
+      "name": "aparAjitA",
+      "kind": "vrtta",
+      "pattern": "LLLLLLG|LGLLGLG"
+    },
+    {
+      "name": "praharaRakalikA",
+      "kind": "vrtta",
+      "pattern": "LLLLLLG|LLLLLLG"
+    },
+    {
+      "name": "vasantatilakA",
+      "kind": "vrtta",
+      "pattern": "GGLGLLLGLLGLGG"
+    },
+    {
+      "name": "induvadanA",
+      "kind": "vrtta",
+      "pattern": "GLLLGLLLGLLLGG"
+    },
+    {
+      "name": "alolA",
+      "kind": "vrtta",
+      "pattern": "GGGLLGG|GGGLLGG"
+    },
+    {
+      "name": "SaSikalA",
+      "kind": "vrtta",
+      "pattern": "LLLLLLL|LLLLLLLG"
+    },
+    {
+      "name": "mAlA",
+      "kind": "vrtta",
+      "pattern": "LLLLLL|LLLLLLLLG"
+    },
+    {
+      "name": "maRiguRanikara",
+      "kind": "vrtta",
+      "pattern": "LLLLLLLL|LLLLLLG"
+    },
+    {
+      "name": "malinI",
+      "kind": "vrtta",
+      "pattern": "LLLLLLGG|GLGGLGG"
+    },
+    {
+      "name": "praBadraka",
+      "kind": "vrtta",
+      "pattern": "LLLLGLGLLLGLGLG"
+    },
+    {
+      "name": "elA",
+      "kind": "vrtta",
+      "pattern": "LLGLG|LLLLLLLLGG"
+    },
+    {
+      "name": "candraleKA",
+      "kind": "vrtta",
+      "pattern": "GGGGLGG|GGLGGLGG"
+    },
+    {
+      "name": "fzaBagajavilasita",
+      "kind": "vrtta",
+      "pattern": "GLLGLG|LLLLLLLLLG"
+    },
+    {
+      "name": "vARinI",
+      "kind": "vrtta",
+      "pattern": "LLLLGLGLLLGLGLGG"
+    },
+    {
+      "name": "SiKariRI",
+      "kind": "vrtta",
+      "pattern": "LGGGGG|LLLLLGGLLLG"
+    },
+    {
+      "name": "pfTvI",
+      "kind": "vrtta",
+      "pattern": "LGLLLGLG|LLLGLGGLG"
+    },
+    {
+      "name": "vaMSapatrapatitam",
+      "kind": "vrtta",
+      "pattern": "GLLGLGLLLGLL|LLLLG"
+    },
+    {
+      "name": "hariRI",
+      "kind": "vrtta",
+      "pattern": "LLLLLG|GGGG|LGLLGLG"
+    },
+    {
+      "name": "mandAkrAntA",
+      "kind": "vrtta",
+      "pattern": "GGGG|LLLLLG|GLGGLGG"
+    },
+    {
+      "name": "narkuwaka",
+      "kind": "vrtta",
+      "pattern": "LLLLGLGLLLGLLGLLG"
+    },
+    {
+      "name": "kokilaka",
+      "kind": "vrtta",
+      "pattern": "LLLLGLG|LLLGLL|GLLG"
+    },
+    {
+      "name": "kusumitalatAvellitA",
+      "kind": "vrtta",
+      "pattern": "GGGGG|LLLLLG|GLGGLGG"
+    },
+    {
+      "name": "meGavisPurjita",
+      "kind": "vrtta",
+      "pattern": "LGGGGG|LLLLLG|GLGGLGG"
+    },
+    {
+      "name": "SArdulavikrIqita",
+      "kind": "vrtta",
+      "pattern": "GGGLLGLGLLLG|GGLGGLG"
+    },
+    {
+      "name": "suvadanA",
+      "kind": "vrtta",
+      "pattern": "GGGGLGG|LLLLLLG|GGLLLG"
+    },
+    {
+      "name": "vftta",
+      "kind": "vrtta",
+      "pattern": "GLGLGLGLGLGLGLGLGLGL"
+    },
+    {
+      "name": "sragDarA",
+      "kind": "vrtta",
+      "pattern": "GGGGLGG|LLLLLLG|GLGGLGG"
+    },
+    {
+      "name": "madraka",
+      "kind": "vrtta",
+      "pattern": "GLLGLGLLLG|LGLLLGLGLLLG"
+    },
+    {
+      "name": "aSvalalita",
+      "kind": "vrtta",
+      "pattern": "LLLLGLGLLLG|LGLLLGLGLLLG"
+    },
+    {
+      "name": "mattAkrIqa",
+      "kind": "vrtta",
+      "pattern": "GGGGGGGG|LLLLL|LLLLLLLLLG"
+    },
+    {
+      "name": "tanvI",
+      "kind": "vrtta",
+      "pattern": "GLLGG|LLLLLLG|GLLGLLLLLLGG"
+    },
+    {
+      "name": "krOYcapadA",
+      "kind": "vrtta",
+      "pattern": "GLLGG|GLLGGLLL|LLLLLLL|LLLLG"
+    },
+    {
+      "name": "BujaNgavijfmBita",
+      "kind": "vrtta",
+      "pattern": "GGGGGGGG|LLLLLLLLLLG|LGLLGLG"
+    },
+    {
+      "name": "apavAha",
+      "kind": "vrtta",
+      "pattern": "GGGLLLLLL|LLLLLL|LLLLLL|LLGGG"
+    },
+    {
+      "name": "caRqavfzwiprayAtadaRqaka",
+      "kind": "vrtta",
+      "pattern": "LLLLLLGLGGLGGLGGLGGLGGLGGLG"
+    },
+    {
+      "name": "arRadaRqaka",
+      "kind": "vrtta",
+      "pattern": "LLLLLLGLGGLGGLGGLGGLGGLGGLGGLG"
+    },
+    {
+      "name": "arRavadaRqaka",
+      "kind": "vrtta",
+      "pattern": "LLLLLLGLGGLGGLGGLGGLGGLGGLGGLGGLG"
+    },
+    {
+      "name": "vyAladaRqaka",
+      "kind": "vrtta",
+      "pattern": "LLLLLLGLGGLGGLGGLGGLGGLGGLGGLGGLGGLG"
+    },
+    {
+      "name": "jImUtadaRqaka",
+      "kind": "vrtta",
+      "pattern": "LLLLLLGLGGLGGLGGLGGLGGLGGLGGLGGLGGLGGLG"
+    },
+    {
+      "name": "lIlAkaradaRqaka",
+      "kind": "vrtta",
+      "pattern": "LLLLLLGLGGLGGLGGLGGLGGLGGLGGLGGLGGLGGLGGLG"
+    },
+    {
+      "name": "uddAmadaRqaka",
+      "kind": "vrtta",
+      "pattern": "LLLLLLGLGGLGGLGGLGGLGGLGGLGGLGGLGGLGGLGGLGGLG"
+    },
+    {
+      "name": "SaNKadaRqaka",
+      "kind": "vrtta",
+      "pattern": "LLLLLLGLGGLGGLGGLGGLGGLGGLGGLGGLGGLGGLGGLGGLGGLG"
+    },
+    {
+      "name": "samudradaRqaka",
+      "kind": "vrtta",
+      "pattern": "LLLLLLGLGGLGGLGGLGGLGGLGGLGGLGGLGGLGGLGGLGGLGGLGGLG"
+    },
+    {
+      "name": "BujaNgadaRqaka",
+      "kind": "vrtta",
+      "pattern": "LLLLLLGLGGLGGLGGLGGLGGLGGLGGLGGLGGLGGLGGLGGLGGLGGLGGLG"
+    },
+    {
+      "name": "pracitakadaRqaka",
+      "kind": "vrtta",
+      "pattern": "LLLLLLLGGLGGLGGLGGLGGLGGLGG"
+    },
+    {
+      "name": "upacitrA",
+      "kind": "vrtta",
+      "pattern": "LLGLLGLLGLG/GLLGLLGLLGG"
+    },
+    {
+      "name": "drutamaDyA",
+      "kind": "vrtta",
+      "pattern": "GLLGLLGLLGG/LLLLGLLGLLGG"
+    },
+    {
+      "name": "vegavatI",
+      "kind": "vrtta",
+      "pattern": "LLGLLGLLGLLGG/GLLGLLGLLGG"
+    },
+    {
+      "name": "BadravirAw",
+      "kind": "vrtta",
+      "pattern": "GGLLGLGLGG/GGGLLGLGLG"
+    },
+    {
+      "name": "ketumatI",
+      "kind": "vrtta",
+      "pattern": "LLGLGLLLGG/GLLGLGLLLGG"
+    },
+    {
+      "name": "AKyAnikI",
+      "kind": "vrtta",
+      "pattern": "GGLGGLLGLGG/LGLGGLLGLGG"
+    },
+    {
+      "name": "viparItAKyAnikI",
+      "kind": "vrtta",
+      "pattern": "LGLGGLLGLGG/GGLGGLLGLGG"
+    },
+    {
+      "name": "hariRaplutA",
+      "kind": "vrtta",
+      "pattern": "LLGLLGLLGLG/LLLGLLGLLGLG"
+    },
+    {
+      "name": "aparavaktra",
+      "kind": "vrtta",
+      "pattern": "LLLLLLGLGLG/LLLLGLLGLGLG"
+    },
+    {
+      "name": "puzpitAgrA",
+      "kind": "vrtta",
+      "pattern": "LLLLLLGLGLGG/LLLLGLLGLGLGG"
+    },
+    {
+      "name": "yavAtparAmatIya",
+      "kind": "vrtta",
+      "pattern": "GLGLGLGLGLGL/LGLGLGLGLGLG"
+    },
+    {
+      "name": "ApIqa",
+      "kind": "vrtta",
+      "pattern": "LLLLLLGG/LLLLLLLLLLGG/LLLLLLLLLLLLLLGG/LLLLLLLLLLLLLLLLLLGG"
+    },
+    {
+      "name": "kalikA",
+      "kind": "vrtta",
+      "pattern": "LLLLLLLLLLGG/LLLLLLGG/LLLLLLLLLLLLLGG/LLLLLLLLLLLLLLLLLLGG"
+    },
+    {
+      "name": "lavalI",
+      "kind": "vrtta",
+      "pattern": "LLLLLLLLLLGG/LLLLLLLLLLLLLLGG/LLLLLLGG/LLLLLLLLLLLLLLLLLLGG"
+    },
+    {
+      "name": "amftaDArA",
+      "kind": "vrtta",
+      "pattern": "LLLLLLLLLLGG/LLLLLLLLLLLLLLGG/LLLLLLLLLLLLLLLLLLGG/LLLLLLGG"
+    },
+    {
+      "name": "udgatA",
+      "kind": "vrtta",
+      "pattern": "LLGLGLLLGL/LLLLLGLGLG/GLLLLLLGLLG/LLGLGLLLGLGLG"
+    },
+    {
+      "name": "sOraBaka",
+      "kind": "vrtta",
+      "pattern": "LLGLGLLLGL/LLLLLGLGLG/GLGLLLGLLG/LLGLGLLLGLGLG"
+    },
+    {
+      "name": "lalita",
+      "kind": "vrtta",
+      "pattern": "LLGLGLLLGL/LLLLLGLGLG/LLLLLLLLGLLG/LLGLGLLLGLGLG"
+    },
+    {
+      "name": "upasTitapracupita",
+      "kind": "vrtta",
+      "pattern": "GGGLLGLGLGLLGG/LLGLLLLGLGLGG/LLLLLLLLG/LLLLLLLLLLGLLGG"
+    },
+    {
+      "name": "varDamAna",
+      "kind": "vrtta",
+      "pattern": "GGGLLGLGLGLLGG/LLGLLLLGLGLGG/LLLLLGLLL/LLLLLLLLLLGLLGG"
+    },
+    {
+      "name": "SudDavirAqArzaBa",
+      "kind": "vrtta",
+      "pattern": "GGGLLGLGLGLLGG/LLGLLLLGLGLGG/GGLLGLGLG/LLLLLLLLLLGLLGG"
+    }
+  ]
+}

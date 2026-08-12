@@ -6,6 +6,7 @@ import { gzipSync } from "node:zlib";
 
 const packageDirectory = fileURLToPath(new URL(".", import.meta.url));
 const path = (...segments) => resolve(packageDirectory, ...segments);
+const WASM_PACK_VERSION = "0.15.0";
 
 function run(command, args) {
   return new Promise((resolvePromise, reject) => {
@@ -15,6 +16,25 @@ function run(command, args) {
       ? resolvePromise()
       : reject(new Error(`${command} ${args.join(" ")} exited with code ${code}`)));
   });
+}
+
+async function commandOutput(command, args) {
+  return new Promise((resolvePromise, reject) => {
+    const child = spawn(command, args, { cwd: packageDirectory, stdio: ["ignore", "pipe", "pipe"] });
+    let output = "";
+    let error = "";
+    child.stdout.on("data", (chunk) => { output += chunk; });
+    child.stderr.on("data", (chunk) => { error += chunk; });
+    child.on("error", reject);
+    child.on("exit", (code) => code === 0
+      ? resolvePromise(output.trim())
+      : reject(new Error(`${command} ${args.join(" ")} exited with code ${code}: ${error.trim()}`)));
+  });
+}
+
+const wasmPackVersion = await commandOutput("wasm-pack", ["--version"]);
+if (wasmPackVersion !== `wasm-pack ${WASM_PACK_VERSION}`) {
+  throw new Error(`wasm-pack ${WASM_PACK_VERSION} is required; found ${wasmPackVersion || "no version"}`);
 }
 
 await rm(path("pkg"), { recursive: true, force: true });
@@ -43,6 +63,7 @@ export { Scheme } from "./vidyut-bindgen.js";
 export interface Akshara { text: string; weight: "G" | "L"; }
 export interface Classification { name: string | null; matchType: "none" | "prefix" | "pada" | "full"; aksharas: Akshara[][]; }
 export interface Classifications { names: string[]; matchTypes: Classification["matchType"][]; aksharas: Akshara[][]; }
+export interface MeterMatch { name: string; matchType: Classification["matchType"]; }
 export interface SandhiRule { first: string; second: string; result: string; }
 export interface SandhiSplit { first: string; second: string; isValid: boolean; isEndOfChunk: boolean; kind: "prefix" | "standard"; }
 export interface PrakriyaRule { source: string; code: string; }
@@ -58,7 +79,7 @@ export interface TaddhitantaArgs { pratipadika: PratipadikaArgs; taddhita: strin
 export declare function initialize(): void;
 export declare function transliterate(input: string, from: import("./vidyut-bindgen.js").Scheme, to: import("./vidyut-bindgen.js").Scheme): string;
 export declare function detect(input: string): import("./vidyut-bindgen.js").Scheme;
-export declare class Chandas { constructor(metersTsv: string); free(): void; classify(text: string): Classification; classifyAll(text: string): Classifications; }
+export declare class Chandas { constructor(); free(): void; classify(text: string): Classification; classifyAll(text: string): Classifications; findMeters(text: string): MeterMatch[]; }
 export declare class Sandhi { constructor(); free(): void; join(first: string, second: string): string; rules(): SandhiRule[]; splitAt(input: string, index: number): SandhiSplit[]; splitAll(input: string): SandhiSplit[]; }
 export declare class Vyakarana { constructor(); free(): void; deriveDhatus(args: DhatuArgs): Prakriya[]; deriveSubantas(args: SubantaArgs): Prakriya[]; deriveTinantas(args: TinantaArgs): Prakriya[]; deriveKrdantas(args: KrdantaArgs): Prakriya[]; deriveTaddhitantas(args: TaddhitantaArgs): Prakriya[]; deriveStryantas(args: PratipadikaArgs): Prakriya[]; }
 `;

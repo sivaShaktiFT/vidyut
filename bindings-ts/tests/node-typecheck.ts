@@ -3,7 +3,7 @@ import { Chandas, Sandhi, Scheme, Vyakarana, detect, initialize, transliterate }
 initialize();
 void detect("rAma");
 void transliterate("rAma", Scheme.Slp1, Scheme.Devanagari);
-new Chandas("vasantatilakA\tvrtta\tGGLGLLLGLLGLGG").classify("mAtaH samastajagatAM maDukEwaBAreH");
+new Chandas().classify("mAtaH samastajagatAM maDukEwaBAreH");
 new Sandhi().splitAll("ceti");
 new Vyakarana().deriveTinantas({
   dhatu: { aupadeshika: "BU", gana: "Bhvadi", prefixes: [], sanadi: [] },

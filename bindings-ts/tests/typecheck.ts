@@ -5,6 +5,7 @@ import {
     Vyakarana,
     initSync,
     type Classification,
+    type MeterMatch,
     type SandhiSplit,
     type TinantaArgs,
     transliterate,
@@ -33,10 +34,11 @@ const args: TinantaArgs = {
 void args;
 void transliterate("rAma", Scheme.Slp1, Scheme.Devanagari);
 
-const metre: Classification = new Chandas("vasantatilakA\tvrtta\tGGLGLLLGLLGLGG").classify(
+const metre: Classification = new Chandas().classify(
     "mAtaH samastajagatAM maDukEwaBAreH",
 );
 const splits: SandhiSplit[] = new Sandhi().splitAll("ceti");
+const bundledMeterMatches: MeterMatch[] = new Chandas().findMeters("mAtaH samastajagatAM maDukEwaBAreH");
 const derivations = new Vyakarana().deriveTinantas(args);
 const typedDerivations: Prakriya[] = derivations;
 
@@ -62,6 +64,7 @@ new Vyakarana().deriveSubantas({
 
 void metre;
 void splits;
+void bundledMeterMatches;
 void derivations;
 void typedDerivations;
 void syncOutput.memory;

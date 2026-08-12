@@ -12,7 +12,9 @@
     "test:wasm": "wasm-pack test --node",
     "test:wasm:browser": "wasm-pack test --headless --chrome",
     "test:package": "node tests/package-smoke.mjs",
-    "test": "npm run build && npm run test:types && npm run test:node && npm run test:browser-loader && npm run test:browser-sync-loader && npm run test:browser && npm run test:package && npm run test:wasm && npm run test:wasm:browser",
+    "test:nextjs": "npm run build && npm run test:nextjs:built",
+    "test:nextjs:built": "node tests/nextjs-deployment-smoke.mjs",
+    "test": "npm run build && npm run test:types && npm run test:node && npm run test:browser-loader && npm run test:browser-sync-loader && npm run test:browser && npm run test:package && npm run test:nextjs:built && npm run test:wasm",
     "pack": "npm run build && (cd pkg && npm pack)",
     "publish:npm": "npm run test && (cd pkg && npm publish --access public)"
   },

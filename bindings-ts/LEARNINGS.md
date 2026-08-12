@@ -8,13 +8,13 @@ that exports a single WebAssembly API over Vidyut's standalone web-capable crate
 | Rust crate | TypeScript surface | Data needed in browser |
 | --- | --- | --- |
 | `vidyut-lipi` | `Scheme`, `detect`, `transliterate` | none |
-| `vidyut-chandas` | `Chandas` | caller-provided metre TSV |
+| `vidyut-chandas` | `Chandas` | bundled vṛtta catalogue |
 | `vidyut-sandhi` | `Sandhi` | built-in generated rules |
 | `vidyut-prakriya` | `Vyakarana` | none |
 
 The wrapper returns plain JavaScript objects for results rather than exposing Rust-owned objects.
-That keeps the API easy to serialize, render, cache, and use in React state. A
-The published package exposes a curated JavaScript facade and a hand-authored declaration file.
+That keeps the API easy to serialize, render, cache, and use in React state. The published package
+exposes a curated JavaScript facade and a hand-authored declaration file.
 This keeps legacy wasm-bindgen internals out of the public contract and makes method parameters
 and return values type-check as the named interfaces.
 
@@ -23,8 +23,8 @@ and return values type-check as the named interfaces.
 - Browser input for grammar, metre, and sandhi is SLP1. It is Vidyut's native format and every
   sound is one ASCII byte, so sandhi boundaries can safely use string indexes. User interfaces can
   transliterate at input and output boundaries.
-- A `Chandas` instance takes TSV instead of implicitly fetching `meters.tsv`. WASM cannot make
-  assumptions about hosting or caching; applications can bundle, fetch, or subset data themselves.
+- `Chandas` embeds Vidyut's vṛtta catalogue for immediate metre lookup. The checked-in JSON is a
+  build-time input only: applications cannot supply, fetch, or configure another catalogue.
 - `Sandhi` now exposes reverse analysis as well as joining. `splitAll` follows the native splitter:
   it stops at the first non-SLP1 character, so no candidate crosses whitespace or punctuation.
   Callers should use `isValid` and lexical context to rank candidates.
@@ -55,12 +55,14 @@ cover the browser exports. The TypeScript contract includes positive inference c
 `@ts-expect-error` cases for partial `upapada` and multi-variant `PratipadikaArgs`. Runtime
 validation must additionally verify malformed grammar objects reject while a following valid call
 still succeeds, and that `splitAll("ca iti")` never returns a cross-chunk split. The default web
-artifact must be initialized with `await init()`. The React and Next.js guides use the explicit
-`@siva-sh/vidyut/browser` entry so a framework server build cannot accidentally select the Node
-loader.
+artifact must be initialized with `await init()`. The README uses the explicit
+`@siva-sh/vidyut/browser` entry for Next.js Client Components so a framework server build cannot
+accidentally select the Node loader.
 
-`tests/typecheck.ts` type-checks the generated declaration file with TypeScript. A full real-browser
-run remains useful before a release: `wasm-pack test --headless --chrome`.
+`tests/typecheck.ts` type-checks the generated declaration file with TypeScript. The release suite
+also packs the package into a temporary Next.js application, production-builds it, and exercises it
+in Chromium. `wasm-pack test --headless --chrome` remains available as an additional check on
+targets that provide chromedriver, but is not required for publication.
 
 ## Next.js and WASM loading
 
@@ -88,4 +90,5 @@ run remains useful before a release: `wasm-pack test --headless --chrome`.
 builds the web and Node.js targets sequentially, enforces the WASM size budget, and prepares the
 published metadata, declarations, and assets. Keeping this lifecycle in one file avoids a separate
 `scripts/` directory while preserving deterministic builds and `npm run build` as the single public
-command.
+command. It requires `wasm-pack 0.15.0` so generated glue remains compatible with the curated
+facade and declarations.

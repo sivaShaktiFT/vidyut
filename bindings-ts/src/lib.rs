@@ -5,7 +5,8 @@
 
 mod utils;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+use std::sync::OnceLock;
 use vidyut_chandas::{Chandas as RustChandas, MatchType, Weight};
 use vidyut_lipi::{detect as detect_scheme, Lipika, Scheme};
 use vidyut_sandhi::{generate_rules, Kind, Rule, Split, SplitsMap, Splitter};
@@ -79,14 +80,28 @@ export interface TinantaArgs {
 export interface TaddhitantaArgs { pratipadika: PratipadikaArgs; taddhita: string; }
 "#;
 
-fn ensure_ascii_slp1(input: &str, api: &str) -> Result<(), JsError> {
-    if input.is_ascii() {
-        Ok(())
-    } else {
+const SLP1_LETTERS: &[u8] = b"aAiIuUfFxXeEoOkKgGNcCjJYwWqQRtTdDnpPbBmyrlvSzshMLH";
+const DEFAULT_METERS_JSON: &str = include_str!("../data/meters.json");
+static DEFAULT_CHANDAS: OnceLock<RustChandas> = OnceLock::new();
+
+fn is_slp1_text_byte(byte: u8) -> bool {
+    SLP1_LETTERS.contains(&byte)
+        || matches!(byte, b' ' | b'\t' | b'\n' | b'\r' | b'\'' | b'|' | b'~')
+}
+
+fn ensure_slp1_text(input: &str, api: &str) -> Result<(), JsError> {
+    if let Some(byte) = input.bytes().find(|byte| !is_slp1_text_byte(*byte)) {
         Err(JsError::new(&format!(
-            "{api} accepts SLP1 (ASCII) input only"
+            "{api} accepts SLP1 text only (invalid character: {:?})",
+            byte as char
         )))
+    } else {
+        Ok(())
     }
+}
+
+fn to_js_value<T: Serialize>(value: &T) -> Result<JsValue, JsError> {
+    serde_wasm_bindgen::to_value(value).map_err(|error| JsError::new(&error.to_string()))
 }
 
 /// Install a useful panic hook for browser development.
@@ -137,6 +152,25 @@ struct WebMatches {
     aksharas: Vec<Vec<WebAkshara>>,
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct WebMeterMatch {
+    name: String,
+    match_type: &'static str,
+}
+
+#[derive(Deserialize)]
+struct MeterCatalogue {
+    meters: Vec<MeterDefinition>,
+}
+
+#[derive(Deserialize)]
+struct MeterDefinition {
+    name: String,
+    kind: String,
+    pattern: String,
+}
+
 fn web_weight(weight: Weight) -> &'static str {
     match weight {
         Weight::G => "G",
@@ -166,10 +200,24 @@ fn web_aksharas(rows: &[Vec<vidyut_chandas::Akshara>]) -> Vec<Vec<WebAkshara>> {
         .collect()
 }
 
-/// Classify Sanskrit verse against a caller-supplied TSV metre catalogue.
-///
-/// The TSV must have `name`, `type`, and weight-pattern columns, for example
-/// `vasantatilakA\tvrtta\tGGLGLLLGLLGLGG`.
+fn default_chandas() -> RustChandas {
+    DEFAULT_CHANDAS
+        .get_or_init(|| {
+            let catalogue: MeterCatalogue = serde_json::from_str(DEFAULT_METERS_JSON)
+                .expect("bundled metre JSON must be valid at build time");
+            let meters_tsv = catalogue
+                .meters
+                .into_iter()
+                .map(|meter| format!("{}\t{}\t{}", meter.name, meter.kind, meter.pattern))
+                .collect::<Vec<_>>()
+                .join("\n");
+            RustChandas::from_text(meters_tsv)
+                .expect("bundled metre definitions must be valid at build time")
+        })
+        .clone()
+}
+
+/// Classify Sanskrit verse against Vidyut's bundled traditional-vrtta catalogue.
 #[wasm_bindgen]
 pub struct Chandas {
     inner: RustChandas,
@@ -177,32 +225,31 @@ pub struct Chandas {
 
 #[wasm_bindgen]
 impl Chandas {
-    /// Create a metre classifier from TSV data. The package deliberately does not bundle a metre
-    /// database, allowing web applications to load exactly the catalogue they need.
+    /// Create a metre classifier with Vidyut's bundled catalogue of traditional vrittas.
     #[wasm_bindgen(constructor)]
-    pub fn new(meters_tsv: &str) -> Result<Chandas, JsError> {
+    pub fn new() -> Chandas {
         utils::set_panic_hook();
-        RustChandas::from_text(meters_tsv)
-            .map(|inner| Chandas { inner })
-            .map_err(|error| JsError::new(&format!("Invalid metre TSV: {error}")))
+        Chandas {
+            inner: default_chandas(),
+        }
     }
 
     /// Return the best matching metre for SLP1 text.
     pub fn classify(&self, text: &str) -> Result<JsValue, JsError> {
-        ensure_ascii_slp1(text, "Chandas")?;
+        ensure_slp1_text(text, "Chandas")?;
         let result = self.inner.classify(text);
         let value = WebMatch {
             name: result.padya().as_ref().map(|padya| padya.name().to_owned()),
             match_type: web_match_type(result.match_type()),
             aksharas: web_aksharas(result.aksharas()),
         };
-        serde_wasm_bindgen::to_value(&value).map_err(|error| JsError::new(&error.to_string()))
+        to_js_value(&value)
     }
 
     /// Return every matching metre for SLP1 text.
     #[wasm_bindgen(js_name = classifyAll)]
     pub fn classify_all(&self, text: &str) -> Result<JsValue, JsError> {
-        ensure_ascii_slp1(text, "Chandas")?;
+        ensure_slp1_text(text, "Chandas")?;
         let result = self.inner.classify_all(text);
         let value = WebMatches {
             names: result
@@ -217,7 +264,26 @@ impl Chandas {
                 .collect(),
             aksharas: web_aksharas(result.aksharas()),
         };
-        serde_wasm_bindgen::to_value(&value).map_err(|error| JsError::new(&error.to_string()))
+        to_js_value(&value)
+    }
+
+    /// Return every bundled metre that matches SLP1 text.
+    ///
+    /// Each result includes `full`, `pada`, or `prefix` match strength.
+    #[wasm_bindgen(js_name = findMeters)]
+    pub fn find_meters(&self, text: &str) -> Result<JsValue, JsError> {
+        ensure_slp1_text(text, "Chandas")?;
+        let result = self.inner.classify_all(text);
+        let matches: Vec<WebMeterMatch> = result
+            .padyas()
+            .iter()
+            .zip(result.match_types())
+            .map(|(padya, match_type)| WebMeterMatch {
+                name: padya.name().to_owned(),
+                match_type: web_match_type(*match_type),
+            })
+            .collect();
+        to_js_value(&matches)
     }
 }
 
@@ -289,8 +355,8 @@ impl Sandhi {
 
     /// Join two SLP1 words, selecting the most specific matching rule.
     pub fn join(&self, first: &str, second: &str) -> Result<String, JsError> {
-        ensure_ascii_slp1(first, "Sandhi")?;
-        ensure_ascii_slp1(second, "Sandhi")?;
+        ensure_slp1_text(first, "Sandhi")?;
+        ensure_slp1_text(second, "Sandhi")?;
         if first.is_empty() || second.is_empty() {
             return Ok(format!("{first}{second}"));
         }
@@ -331,7 +397,7 @@ impl Sandhi {
                 result: rule.result().to_owned(),
             })
             .collect();
-        serde_wasm_bindgen::to_value(&rules).map_err(|error| JsError::new(&error.to_string()))
+        to_js_value(&rules)
     }
 
     /// Return all possible splits at an SLP1 byte index.
@@ -340,7 +406,7 @@ impl Sandhi {
     /// boundary is not known in advance.
     #[wasm_bindgen(js_name = splitAt)]
     pub fn split_at(&self, input: &str, index: usize) -> Result<JsValue, JsError> {
-        ensure_ascii_slp1(input, "Sandhi")?;
+        ensure_slp1_text(input, "Sandhi")?;
         if input.is_empty() || index >= input.len() {
             return Err(JsError::new(
                 "index must identify a byte in a non-empty input string",
@@ -352,20 +418,20 @@ impl Sandhi {
             .into_iter()
             .map(web_split)
             .collect();
-        serde_wasm_bindgen::to_value(&splits).map_err(|error| JsError::new(&error.to_string()))
+        to_js_value(&splits)
     }
 
     /// Return all possible splits in the first contiguous SLP1 chunk.
     #[wasm_bindgen(js_name = splitAll)]
     pub fn split_all(&self, input: &str) -> Result<JsValue, JsError> {
-        ensure_ascii_slp1(input, "Sandhi")?;
+        ensure_slp1_text(input, "Sandhi")?;
         let splits: Vec<WebSplit> = self
             .splitter
             .split_all(input)
             .into_iter()
             .map(web_split)
             .collect();
-        serde_wasm_bindgen::to_value(&splits).map_err(|error| JsError::new(&error.to_string()))
+        to_js_value(&splits)
     }
 }
 
@@ -459,15 +525,39 @@ mod tests {
             .all(|split| !split.first().contains(char::is_whitespace)));
     }
 
+    #[cfg(target_arch = "wasm32")]
+    #[test]
+    fn rejects_invalid_ascii_slp1_text() {
+        let sandhi = Sandhi::new();
+        assert!(sandhi.join("@", "iti").is_err());
+
+        let chandas = Chandas::new();
+        assert!(chandas.classify("@").is_err());
+    }
+
     #[test]
     fn classifies_a_known_metre() {
-        let chandas = Chandas::new("vasantatilakA\tvrtta\tGGLGLLLGLLGLGG").expect("valid TSV");
+        let chandas = Chandas::new();
         let result = chandas.inner.classify("mAtaH samastajagatAM maDukEwaBAreH");
         assert_eq!(
             result.padya().as_ref().map(|padya| padya.name()),
             Some("vasantatilakA")
         );
         assert_eq!(result.match_type(), MatchType::Pada);
+    }
+
+    #[test]
+    fn bundled_catalogue_finds_vasantatilaka() {
+        let chandas = Chandas::new();
+        let matches = chandas
+            .inner
+            .classify_all("mAtaH samastajagatAM maDukEwaBAreH");
+        assert!(matches
+            .padyas()
+            .iter()
+            .zip(matches.match_types())
+            .any(|(padya, match_type)| padya.name() == "vasantatilakA"
+                && *match_type == MatchType::Pada));
     }
 
     #[cfg(target_arch = "wasm32")]
@@ -477,7 +567,7 @@ mod tests {
         assert!(sandhi.join("राम", "iti").is_err());
         assert!(sandhi.split_all("राम").is_err());
 
-        let chandas = Chandas::new("vasantatilakA\tvrtta\tGGLGLLLGLLGLGG").unwrap();
+        let chandas = Chandas::new();
         assert!(chandas.classify("राम").is_err());
     }
 }

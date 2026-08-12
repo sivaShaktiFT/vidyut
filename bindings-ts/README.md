@@ -1,8 +1,29 @@
 # Vidyut for JavaScript and TypeScript
 
-`@siva-sh/vidyut` brings Vidyut's Sanskrit tools to JavaScript everywhere WebAssembly runs:
-Node.js, browsers, browser bundlers, workers, and server-side applications. It exposes one
-typed root API for transliteration, metre classification, sandhi analysis, and word generation.
+`@siva-sh/vidyut` is a production-ready WebAssembly interface to Vidyut's Sanskrit tools. It runs
+in modern ESM Node.js, browsers, browser bundlers, workers, and Next.js Client Components, with a
+typed API for transliteration, metre classification, sandhi analysis, and word generation.
+
+## Find metres with the built-in catalogue
+
+Use the bundled catalogue when you want to identify metres without maintaining metre data in your
+application. `findMeters` returns every non-empty match and its strength: `"full"` for a complete
+match, `"pada"` at a metrical foot boundary, and `"prefix"` for an incomplete expression.
+
+```ts
+import { Chandas } from "@siva-sh/vidyut";
+
+const metres = new Chandas();
+try {
+  const matches = metres.findMeters("mAtaH samastajagatAM maDukEwaBAreH");
+  console.log(matches); // [{ name: "vasantatilakA", matchType: "pada" }, ...]
+} finally {
+  metres.free();
+}
+```
+
+The complete traditional *vṛtta* catalogue is checked in as JSON and embedded in the WebAssembly
+binary at build time. There is no runtime data fetch, data-file import, or catalogue configuration.
 
 ## Install
 
@@ -10,9 +31,10 @@ typed root API for transliteration, metre classification, sandhi analysis, and w
 npm install @siva-sh/vidyut
 ```
 
-## Node.js
+## Node.js (ESM)
 
-Node.js loads its WebAssembly implementation synchronously, so no setup is required.
+Node.js loads its WebAssembly implementation synchronously, so no setup is required. The package
+is ESM-only: use `import`, not CommonJS `require()`.
 
 ```ts
 import { Sandhi, Scheme, transliterate } from "@siva-sh/vidyut";
@@ -21,11 +43,11 @@ console.log(transliterate("rAma", Scheme.Slp1, Scheme.Devanagari)); // राम
 console.log(new Sandhi().join("ca", "iti")); // ceti
 ```
 
-## Browsers, React, Next.js, bundlers, and workers
+## Browser applications
 
-Call the default initializer once before using the API. With Vite, webpack, Rollup, and comparable
-tools, the package selects its browser build automatically. In Next.js Client Components, prefer
-the explicit `@siva-sh/vidyut/browser` entry point.
+Call the default initializer once before using the API. Vite, webpack, Rollup, and comparable
+tools select the browser build from the package root automatically. The initializer loads the
+packaged WASM asset, shares concurrent calls, and allows a retry after a failed fetch or compile.
 
 ```ts
 import init, { Scheme, transliterate } from "@siva-sh/vidyut";
@@ -34,24 +56,21 @@ await init();
 console.log(transliterate("rAma", Scheme.Slp1, Scheme.Devanagari)); // राम
 ```
 
-The default `init()` loads the packaged `.wasm` file. In workers or deployments that provide the
-compiled module or bytes themselves, pass it as an option:
+In a worker or a runtime that provides a compiled module or bytes directly, pass it as an option:
 
 ```ts
 await init({ module_or_path: wasmModuleOrBytes });
 ```
 
-`init()` is safe to call concurrently: all callers share one initialization request and receive the
-same `InitOutput`. If loading or compilation fails, a later call retries it. Do not invoke browser APIs while rendering on the
-server; Node.js can instead use the synchronous API above. `initSync` is also available for a
-browser Worker that already has the compiled module or bytes; it cannot synchronously fetch a
-`.wasm` file and should not block the UI thread.
+Do not invoke browser APIs while rendering on the server; Node.js can instead use the synchronous
+API above. `initSync` is available for a browser Worker that already has compiled bytes or a
+module. It cannot synchronously fetch a `.wasm` file and should not block the UI thread.
 
 ### React and Next.js
 
-For React and Next.js, load the browser entry point in a Client Component. Cache the import and
-initializer at module scope, which avoids initialization during server rendering and lets every
-component use the same ready API.
+For React and Next.js, load the explicit browser entry point from a Client Component. This avoids
+Next.js selecting the Node loader while compiling its server graph. Cache the import and initializer
+at module scope so every component shares one ready API.
 
 ```ts
 // lib/vidyut-client.ts
@@ -131,7 +150,7 @@ self.onmessage = ({ data }: MessageEvent<ArrayBuffer>) => {
 ```ts
 import { Chandas, Sandhi, Vyakarana } from "@siva-sh/vidyut";
 
-const metres = new Chandas("vasantatilakA\tvrtta\tGGLGLLLGLLGLGG");
+const metres = new Chandas();
 const match = metres.classify("mAtaH samastajagatAM maDukEwaBAreH");
 
 const splits = new Sandhi().splitAll("rAmogacCati").filter((split) => split.isValid);
@@ -151,9 +170,11 @@ values are strings such as `"Bhvadi"`, `"Lat"`, and `"Kartari"`; the package del
 not export numeric grammar enum objects. A `KrdantaArgs` value requires
 exactly one of `krt` or `unadi`.
 
-`Chandas` and `Sandhi` accept SLP1/ASCII text and throw for non-ASCII input. When several sandhi
-rules have the same specificity, `Sandhi.join` uses the first rule in Vidyut's generated precedence
-order; use `rules()` when an application needs to inspect that table.
+`Chandas` and `Sandhi` accept SLP1 text and reject invalid characters. Whitespace, apostrophes,
+`|`, and `~` are supported alongside the SLP1 alphabet. When several sandhi rules have the same
+specificity, `Sandhi.join` uses the first rule in Vidyut's generated precedence order; use `rules()`
+when an application needs to inspect that table. `splitAt(input, index)` uses the index of the last
+character in the first segment; use `splitAll` when the boundary is not already known.
 
 ### Supported transliteration schemes
 
@@ -218,7 +239,6 @@ Scheme.Wx
 
 ## Runtime support
 
-The package uses conditional exports: Node.js receives a native Node WASM loader; browsers and
-bundlers receive an asynchronous ES-module loader. Use the package root rather than importing its
-generated files directly so your runtime receives the correct implementation. Next.js client code
-should explicitly import `@siva-sh/vidyut/browser`.
+The package uses conditional exports: ESM Node.js receives a native Node WASM loader; browsers and
+bundlers receive an asynchronous ES-module loader. Use the package root rather than generated files
+directly. In Next.js Client Components, explicitly import `@siva-sh/vidyut/browser`.
