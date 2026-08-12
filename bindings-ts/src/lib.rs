@@ -13,6 +13,7 @@ use wasm_bindgen::prelude::*;
 const SLP1_LETTERS: &[u8] = b"aAiIuUfFxXeEoOkKgGNcCjJYwWqQRtTdDnpPbBmyrlvSzshMLH";
 const DEFAULT_METERS_JSON: &str = include_str!("../data/meters.json");
 static DEFAULT_CHANDAS: OnceLock<RustChandas> = OnceLock::new();
+static DEFAULT_SANDHI: OnceLock<(Vec<Rule>, Splitter)> = OnceLock::new();
 
 fn is_slp1_text_byte(byte: u8) -> bool {
     SLP1_LETTERS.contains(&byte)
@@ -121,7 +122,7 @@ fn web_aksharas(rows: &[Vec<vidyut_chandas::Akshara>]) -> Vec<Vec<WebAkshara>> {
         .collect()
 }
 
-fn default_chandas() -> RustChandas {
+fn default_chandas() -> &'static RustChandas {
     DEFAULT_CHANDAS
         .get_or_init(|| {
             let catalogue: MeterCatalogue = serde_json::from_str(DEFAULT_METERS_JSON)
@@ -135,29 +136,24 @@ fn default_chandas() -> RustChandas {
             RustChandas::from_text(meters_tsv)
                 .expect("bundled metre definitions must be valid at build time")
         })
-        .clone()
 }
 
 /// Classify Sanskrit verse against Vidyut's bundled traditional-vrtta catalogue.
 #[wasm_bindgen]
-pub struct Chandas {
-    inner: RustChandas,
-}
+pub struct Chandas;
 
 #[wasm_bindgen]
 impl Chandas {
     /// Create a metre classifier with Vidyut's bundled catalogue of traditional vrittas.
     #[wasm_bindgen(constructor)]
     pub fn new() -> Chandas {
-        Chandas {
-            inner: default_chandas(),
-        }
+        Chandas
     }
 
     /// Return the best matching metre for SLP1 text.
     pub fn classify(&self, text: &str) -> Result<JsValue, JsError> {
         ensure_slp1_text(text, "Chandas")?;
-        let result = self.inner.classify_all(text);
+        let result = default_chandas().classify_all(text);
         let best_match = result
             .padyas()
             .iter()
@@ -175,7 +171,7 @@ impl Chandas {
     #[wasm_bindgen(js_name = classifyAll)]
     pub fn classify_all(&self, text: &str) -> Result<JsValue, JsError> {
         ensure_slp1_text(text, "Chandas")?;
-        let result = self.inner.classify_all(text);
+        let result = default_chandas().classify_all(text);
         let value = WebMatches {
             names: result
                 .padyas()
@@ -198,7 +194,7 @@ impl Chandas {
     #[wasm_bindgen(js_name = findMeters)]
     pub fn find_meters(&self, text: &str) -> Result<JsValue, JsError> {
         ensure_slp1_text(text, "Chandas")?;
-        let result = self.inner.classify_all(text);
+        let result = default_chandas().classify_all(text);
         let matches: Vec<WebMeterMatch> = result
             .padyas()
             .iter()
@@ -247,6 +243,14 @@ fn splitter_from_rules(rules: &[Rule]) -> Splitter {
     Splitter::from_map(map)
 }
 
+fn default_sandhi() -> &'static (Vec<Rule>, Splitter) {
+    DEFAULT_SANDHI.get_or_init(|| {
+        let rules = generate_rules();
+        let splitter = splitter_from_rules(&rules);
+        (rules, splitter)
+    })
+}
+
 fn web_split(split: Split) -> WebSplit {
     WebSplit {
         first: split.first().to_owned(),
@@ -262,19 +266,14 @@ fn web_split(split: Split) -> WebSplit {
 
 /// Join and split external sandhi in SLP1.
 #[wasm_bindgen]
-pub struct Sandhi {
-    rules: Vec<Rule>,
-    splitter: Splitter,
-}
+pub struct Sandhi;
 
 #[wasm_bindgen]
 impl Sandhi {
     /// Create an engine using Vidyut's built-in external-sandhi rules.
     #[wasm_bindgen(constructor)]
     pub fn new() -> Sandhi {
-        let rules = generate_rules();
-        let splitter = splitter_from_rules(&rules);
-        Sandhi { rules, splitter }
+        Sandhi
     }
 
     /// Join two SLP1 words, selecting the most specific matching rule.
@@ -286,8 +285,8 @@ impl Sandhi {
         }
         // Rules are generated in precedence order. Preserve that order for equally specific
         // matches instead of relying on Iterator::max_by_key's incidental tie behavior.
-        let best = self
-            .rules
+        let best = default_sandhi()
+            .0
             .iter()
             .filter(|rule| first.ends_with(rule.first()) && second.starts_with(rule.second()))
             .fold(None, |best: Option<&Rule>, rule| match best {
@@ -312,8 +311,8 @@ impl Sandhi {
 
     /// Return all generated external-sandhi rules.
     pub fn rules(&self) -> Result<JsValue, JsError> {
-        let rules: Vec<WebRule> = self
-            .rules
+        let rules: Vec<WebRule> = default_sandhi()
+            .0
             .iter()
             .map(|rule| WebRule {
                 first: rule.first().to_owned(),
@@ -338,8 +337,8 @@ impl Sandhi {
         if offset == 0 || offset == input.len() {
             return to_js_value(&Vec::<WebSplit>::new());
         }
-        let splits: Vec<WebSplit> = self
-            .splitter
+        let splits: Vec<WebSplit> = default_sandhi()
+            .1
             .split_at(input, offset - 1)
             .into_iter()
             .map(web_split)
@@ -351,8 +350,8 @@ impl Sandhi {
     #[wasm_bindgen(js_name = splitAll)]
     pub fn split_all(&self, input: &str) -> Result<JsValue, JsError> {
         ensure_slp1_text(input, "Sandhi")?;
-        let splits: Vec<WebSplit> = self
-            .splitter
+        let splits: Vec<WebSplit> = default_sandhi()
+            .1
             .split_all(input)
             .into_iter()
             .map(web_split)
@@ -431,10 +430,9 @@ mod tests {
 
     #[test]
     fn joins_and_splits_sandhi() {
-        let sandhi = Sandhi::new();
-        assert_eq!(sandhi.join("ca", "iti").unwrap(), "ceti");
-        assert!(sandhi
-            .splitter
+        assert_eq!(Sandhi::new().join("ca", "iti").unwrap(), "ceti");
+        assert!(default_sandhi()
+            .1
             .split_at("ceti", 1)
             .iter()
             .any(|split| split.first() == "ca" && split.second() == "iti"));
@@ -442,9 +440,8 @@ mod tests {
 
     #[test]
     fn split_all_stops_at_a_chunk_boundary() {
-        let sandhi = Sandhi::new();
-        assert!(sandhi
-            .splitter
+        assert!(default_sandhi()
+            .1
             .split_all("ca iti")
             .iter()
             .all(|split| !split.first().contains(char::is_whitespace)));
@@ -462,8 +459,7 @@ mod tests {
 
     #[test]
     fn classifies_a_known_metre() {
-        let chandas = Chandas::new();
-        let result = chandas.inner.classify("mAtaH samastajagatAM maDukEwaBAreH");
+        let result = default_chandas().classify("mAtaH samastajagatAM maDukEwaBAreH");
         assert_eq!(
             result.padya().as_ref().map(|padya| padya.name()),
             Some("vasantatilakA")
@@ -473,10 +469,7 @@ mod tests {
 
     #[test]
     fn bundled_catalogue_finds_vasantatilaka() {
-        let chandas = Chandas::new();
-        let matches = chandas
-            .inner
-            .classify_all("mAtaH samastajagatAM maDukEwaBAreH");
+        let matches = default_chandas().classify_all("mAtaH samastajagatAM maDukEwaBAreH");
         assert!(matches
             .padyas()
             .iter()

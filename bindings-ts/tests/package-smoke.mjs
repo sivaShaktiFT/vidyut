@@ -1,4 +1,5 @@
 import { execFile } from "node:child_process";
+import assert from "node:assert/strict";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -10,6 +11,8 @@ const pkg = new URL("../pkg/", import.meta.url);
 const consumer = await mkdtemp(join(tmpdir(), "vidyut-npm-consumer-"));
 
 try {
+  const artifact = await readFile(new URL("../pkg/browser/vidyut_bg.wasm", import.meta.url));
+  assert.ok(!new TextDecoder().decode(artifact).includes("console_error_panic_hook"), "production WASM must not ship the development panic hook");
   const { stdout } = await exec("npm", ["pack", "--json"], { cwd: pkg });
   const [{ filename }] = JSON.parse(stdout);
   await exec("npm", ["install", "--ignore-scripts", join(pkg.pathname, filename)], { cwd: consumer });

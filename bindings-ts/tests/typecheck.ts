@@ -31,7 +31,11 @@ const args: TinantaArgs = {
     skip_at_agama: false,
 };
 
+// @ts-expect-error grammar values are constrained to values accepted by the WASM API.
+const invalidGana: TinantaArgs = { ...args, dhatu: { ...args.dhatu, gana: "Bhvadii" } };
+
 void args;
+void invalidGana;
 void transliterate("rAma", Scheme.Slp1, Scheme.Devanagari);
 
 const metre: Classification = new Chandas().classify(

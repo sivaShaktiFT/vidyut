@@ -20,6 +20,7 @@ use crate::core::Error;
 use crate::core::Rule;
 use crate::core::{Prakriya, Step, StepTerm};
 use serde::{Deserialize, Serialize};
+#[cfg(feature = "panic-hook")]
 extern crate console_error_panic_hook;
 
 use crate::Vyakarana;
@@ -348,8 +349,9 @@ impl Vidyut {
     ///
     /// This constructor is not called `new` because `new` is a reserved word in JavaScript.
     pub fn init() -> Self {
-        // Logs panics to the console. Without this, panics are logged as "RuntimeError:
-        // Unreachable executed", which is not useful.
+        // This hook is useful for standalone debugging builds but must be explicitly enabled so
+        // production consumers do not ship development panic formatting code.
+        #[cfg(feature = "panic-hook")]
         console_error_panic_hook::set_once();
 
         Self {}

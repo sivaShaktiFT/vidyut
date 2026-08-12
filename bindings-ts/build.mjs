@@ -29,8 +29,25 @@ export default function init(options) {
 }
 `;
 
-function declarationSource(publicTypes) {
-  return `${publicTypes}
+const grammarEnums = [
+  "Gana", "Antargana", "Sanadi", "Prayoga", "Purusha", "Vacana", "Lakara", "DhatuPada",
+  "Linga", "Vibhakti", "BaseKrt", "Unadi", "Taddhita",
+];
+
+function grammarTypeSource(generatedTypes) {
+  return grammarEnums.map((name) => {
+    const match = generatedTypes.match(new RegExp(`export enum ${name} \\{([\\s\\S]*?)\\n\\}`));
+    if (!match) throw new Error(`wasm-bindgen declaration is missing ${name}`);
+    const values = [...match[1].matchAll(/^\s*([A-Za-z_$][\w$]*)\s*=/gm)].map(([, value]) => JSON.stringify(value));
+    if (!values.length) throw new Error(`wasm-bindgen declaration has no ${name} variants`);
+    return `export type ${name} = ${values.join(" | ")};`;
+  }).join("\n");
+}
+
+function declarationSource(publicTypes, grammarTypes) {
+  return `${grammarTypes}
+
+${publicTypes}
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 export type SyncInitInput = BufferSource | WebAssembly.Module;
 export interface InitOutput { readonly memory: WebAssembly.Memory; }
@@ -94,6 +111,8 @@ try {
   // This is the complete supported API. Keeping generated wasm-bindgen modules private prevents
   // transitive bindings from silently becoming public. `api.d.ts` is the single source of truth.
   const publicTypes = await readFile(path("api.d.ts"), "utf8");
+  const generatedTypes = await readFile(browserPath("vidyut.d.ts"), "utf8");
+  const grammarTypes = grammarTypeSource(generatedTypes);
   await Promise.all([
     rename(browserPath("vidyut.js"), browserPath("vidyut-bindgen.js")),
     rename(browserPath("vidyut.d.ts"), browserPath("vidyut-bindgen.d.ts")),
@@ -102,7 +121,8 @@ try {
     copyFile(path("LICENSE-MIT"), stagingPath("LICENSE-MIT")),
     copyFile(path("README.md"), stagingPath("README.md")),
     writeFile(browserPath("vidyut.js"), facadeSource),
-    writeFile(browserPath("vidyut.d.ts"), declarationSource(publicTypes)),
+    writeFile(browserPath("vidyut.d.ts"), declarationSource(publicTypes, grammarTypes)),
+    writeFile(browserPath("vidyut-bindgen.d.ts"), `/// <reference lib="dom" />\n\n${generatedTypes}`),
     writeFile(browserPath("wasm-url.js"), "export default new URL(\"./vidyut_bg.wasm\", import.meta.url);\n"),
     writeFile(browserPath("wasm-url.d.ts"), "declare const wasmUrl: URL;\nexport default wasmUrl;\n"),
     rm(browserPath(".gitignore"), { force: true }),

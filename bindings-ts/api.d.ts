@@ -12,12 +12,12 @@ export interface PrakriyaRule { source: string; code: string; }
 export interface PrakriyaStepTerm { text: string; wasChanged: boolean; }
 export interface PrakriyaStep { rule: PrakriyaRule; result: PrakriyaStepTerm[]; }
 export interface Prakriya { text: string; history: PrakriyaStep[]; }
-export interface DhatuArgs { aupadeshika: string; gana: string; antargana?: string; sanadi: string[]; prefixes: string[]; }
-export type KrdantaArgs = { dhatu: DhatuArgs; lakara?: string; prayoga?: string; upapada?: { stem: string; linga: string; vibhakti: string; vacana: string }; } & ({ krt: string; unadi?: never } | { unadi: string; krt?: never });
-export type PratipadikaArgs = { basic: string; nyap?: never; krdanta?: never; taddhitanta?: never } | { nyap: string; basic?: never; krdanta?: never; taddhitanta?: never } | { krdanta: KrdantaArgs; basic?: never; nyap?: never; taddhitanta?: never } | { taddhitanta: { stem: string; taddhita: string }; basic?: never; nyap?: never; krdanta?: never };
-export interface SubantaArgs { pratipadika: PratipadikaArgs; linga: string; vibhakti: string; vacana: string; }
-export interface TinantaArgs { dhatu: DhatuArgs; lakara: string; prayoga: string; purusha: string; vacana: string; skip_at_agama: boolean; pada?: string; }
-export interface TaddhitantaArgs { pratipadika: PratipadikaArgs; taddhita: string; }
+export interface DhatuArgs { aupadeshika: string; gana: Gana; antargana?: Antargana; sanadi: Sanadi[]; prefixes: string[]; }
+export type KrdantaArgs = { dhatu: DhatuArgs; lakara?: Lakara; prayoga?: Prayoga; upapada?: { stem: string; linga: Linga; vibhakti: Vibhakti; vacana: Vacana }; } & ({ krt: BaseKrt; unadi?: never } | { unadi: Unadi; krt?: never });
+export type PratipadikaArgs = { basic: string; nyap?: never; krdanta?: never; taddhitanta?: never } | { nyap: string; basic?: never; krdanta?: never; taddhitanta?: never } | { krdanta: KrdantaArgs; basic?: never; nyap?: never; taddhitanta?: never } | { taddhitanta: { stem: string; taddhita: Taddhita }; basic?: never; nyap?: never; krdanta?: never };
+export interface SubantaArgs { pratipadika: PratipadikaArgs; linga: Linga; vibhakti: Vibhakti; vacana: Vacana; }
+export interface TinantaArgs { dhatu: DhatuArgs; lakara: Lakara; prayoga: Prayoga; purusha: Purusha; vacana: Vacana; skip_at_agama: boolean; pada?: DhatuPada; }
+export interface TaddhitantaArgs { pratipadika: PratipadikaArgs; taddhita: Taddhita; }
 
 export declare function transliterate(input: string, from: import("./vidyut-bindgen.js").Scheme, to: import("./vidyut-bindgen.js").Scheme): string;
 export declare function detect(input: string): import("./vidyut-bindgen.js").Scheme;
