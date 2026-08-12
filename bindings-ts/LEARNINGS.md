@@ -81,3 +81,11 @@ run remains useful before a release: `wasm-pack test --headless --chrome`.
   and decode work and loses streaming compilation.
 - `Sandhi`, `Chandas`, and `Vyakarana` allocate WASM-side resources. Create them after initialization
   and free them in `finally` blocks or effect cleanup; never allocate them during a React render.
+
+## Package build layout
+
+`bindings-ts/build.mjs` is the package-level build entrypoint. It removes stale generated output,
+builds the web and Node.js targets sequentially, enforces the WASM size budget, and prepares the
+published metadata, declarations, and assets. Keeping this lifecycle in one file avoids a separate
+`scripts/` directory while preserving deterministic builds and `npm run build` as the single public
+command.
