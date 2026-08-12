@@ -35,7 +35,7 @@ console.log({ input, output }); // { input: "rAma", output: "राम" }
 
 ## Find metres with the built-in catalogue
 
-The traditional *vṛtta* catalogue is embedded in the WASM binary, so there is no runtime data fetch or catalogue configuration. `findMeters` returns every non-empty match and its strength: `"full"`, `"pada"`, or `"prefix"`.
+The traditional *vṛtta* catalogue is embedded in the WASM binary, so there is no runtime data fetch or catalogue configuration. Vidyut also recognizes its built-in *jāti* metres (such as `AryA`). `findMeters` returns every non-empty match and its strength: `"full"`, `"pada"`, or `"prefix"`.
 
 ```ts
 import init, { Chandas } from "@siva-sh/vidyut";

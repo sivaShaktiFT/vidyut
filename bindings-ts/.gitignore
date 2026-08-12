@@ -4,6 +4,7 @@
 Cargo.lock
 /bin/
 /pkg/
+/.pkg-build-*/
 /wasm-pack.log
 /tests/*.js
 /tests/*.js.map

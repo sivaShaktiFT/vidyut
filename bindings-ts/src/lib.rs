@@ -31,7 +31,9 @@ fn ensure_slp1_text(input: &str, api: &str) -> Result<(), JsError> {
 }
 
 fn to_js_value<T: Serialize>(value: &T) -> Result<JsValue, JsError> {
-    serde_wasm_bindgen::to_value(value).map_err(|error| JsError::new(&error.to_string()))
+    value
+        .serialize(&serde_wasm_bindgen::Serializer::new().serialize_missing_as_null(true))
+        .map_err(|error| JsError::new(&error.to_string()))
 }
 
 /// Transliterate Sanskrit text between any two supported scripts or encodings.
@@ -155,10 +157,15 @@ impl Chandas {
     /// Return the best matching metre for SLP1 text.
     pub fn classify(&self, text: &str) -> Result<JsValue, JsError> {
         ensure_slp1_text(text, "Chandas")?;
-        let result = self.inner.classify(text);
+        let result = self.inner.classify_all(text);
+        let best_match = result
+            .padyas()
+            .iter()
+            .zip(result.match_types())
+            .max_by_key(|(_, match_type)| **match_type);
         let value = WebMatch {
-            name: result.padya().as_ref().map(|padya| padya.name().to_owned()),
-            match_type: web_match_type(result.match_type()),
+            name: best_match.map(|(padya, _)| padya.name().to_owned()),
+            match_type: web_match_type(best_match.map_or(MatchType::None, |(_, m)| *m)),
             aksharas: web_aksharas(result.aksharas()),
         };
         to_js_value(&value)

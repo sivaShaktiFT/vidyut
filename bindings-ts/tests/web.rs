@@ -2,7 +2,7 @@
 
 #![cfg(target_arch = "wasm32")]
 
-use bindings_ts::{transliterate, Sandhi, Vyakarana};
+use bindings_ts::{transliterate, Chandas, Sandhi, Vyakarana};
 extern crate wasm_bindgen_test;
 use serde::Serialize;
 use vidyut_lipi::Scheme;
@@ -19,6 +19,29 @@ fn transliterates_in_wasm() {
 #[wasm_bindgen_test]
 fn joins_sandhi_in_wasm() {
     assert_eq!(Sandhi::new().join("ca", "iti").unwrap(), "ceti");
+}
+
+#[wasm_bindgen_test]
+fn classifies_jati_as_the_best_available_match() {
+    let chandas = Chandas::new();
+    // AryA has four padas with 12, 18, 12, and 15 matras. This sequence has 28 guru syllables.
+    let result = chandas.classify(&"gA ".repeat(28)).unwrap();
+    let result: serde_json::Value = serde_wasm_bindgen::from_value(result).unwrap();
+
+    assert_eq!(result["name"], "AryA");
+    assert_eq!(result["matchType"], "full");
+}
+
+#[wasm_bindgen_test]
+fn serializes_an_absent_metre_name_as_null() {
+    let chandas = Chandas::new();
+    let result = chandas
+        .classify("gA ga ga ga ga ga ga ga ga ga ga ga ")
+        .unwrap();
+    let result: serde_json::Value = serde_wasm_bindgen::from_value(result).unwrap();
+
+    assert!(result["name"].is_null());
+    assert_eq!(result["matchType"], "none");
 }
 
 #[derive(Serialize)]
