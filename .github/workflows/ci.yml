@@ -63,3 +63,38 @@ jobs:
         with:
           command: fmt
           args: --all -- --check
+
+  bindings-ts:
+    name: TypeScript bindings
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Install Rust WASM target
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+          target: wasm32-unknown-unknown
+
+      - name: Install wasm-pack
+        uses: jetli/wasm-pack-action@v0.4.0
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install package dependencies and Chromium
+        working-directory: bindings-ts
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Test the npm package and browser bindings
+        working-directory: bindings-ts
+        run: |
+          npm test
+          npm run test:wasm:browser

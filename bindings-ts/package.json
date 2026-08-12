@@ -4,11 +4,19 @@
   "scripts": {
     "build": "node build.mjs",
     "test:web:manual": "npm run build && npx --yes serve . --listen 4173",
-    "test:types": "npm exec --yes --package=typescript -- tsc --noEmit --strict --target ES2022 --module NodeNext --moduleResolution NodeNext tests/typecheck.ts",
-    "test:node": "npm run build && node tests/node-smoke.mjs",
-    "test:browser-loader": "npm run build && node tests/browser-loader-smoke.mjs",
-    "test:browser-sync-loader": "npm run build && node tests/browser-sync-loader-smoke.mjs",
+    "test:types": "npm exec --yes --package=typescript -- tsc --noEmit --strict --target ES2022 --module NodeNext --moduleResolution NodeNext tests/typecheck.ts tests/node-typecheck.ts",
+    "test:node": "node tests/node-smoke.mjs",
+    "test:browser-loader": "node tests/browser-loader-smoke.mjs",
+    "test:browser-sync-loader": "node tests/browser-sync-loader-smoke.mjs",
+    "test:browser": "playwright test tests/browser.spec.mjs",
+    "test:wasm": "wasm-pack test --node",
+    "test:wasm:browser": "wasm-pack test --headless --chrome",
+    "test:package": "node tests/package-smoke.mjs",
+    "test": "npm run build && npm run test:types && npm run test:node && npm run test:browser-loader && npm run test:browser-sync-loader && npm run test:browser && npm run test:package && npm run test:wasm",
     "pack": "npm run build && (cd pkg && npm pack)",
-    "publish:npm": "npm run build && (cd pkg && npm publish --access public)"
+    "publish:npm": "npm run test && (cd pkg && npm publish --access public)"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.0"
   }
 }

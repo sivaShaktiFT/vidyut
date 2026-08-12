@@ -9,7 +9,7 @@ import {
     type TinantaArgs,
     transliterate,
     type Prakriya,
-} from "../pkg/index.js";
+} from "../pkg/browser/vidyut.js";
 
 const wasmBytes = new Uint8Array();
 initSync({ module: wasmBytes });
