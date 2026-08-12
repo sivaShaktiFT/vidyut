@@ -8,13 +8,16 @@ export interface CivilDate {
   month: number;
   day: number;
 }
+/** Geographic coordinates and one unambiguous local-time representation. */
 export interface Location {
   latitude: number;
   longitude: number;
   /** Offset from UTC in hours, e.g. 5.5 for IST. Required unless `timeZone` is supplied. Mutually exclusive with `timeZone`. */ utcOffset?: number;
   /** IANA timezone, e.g. `Asia/Kolkata`. Handles DST for the requested date. Mutually exclusive with `utcOffset`. */ timeZone?: string;
 }
+/** Sidereal reference used by Swiss Ephemeris-backed calculations. */
 export type Ayanamsha = 'raman' | 'lahiri';
+/** Asset and sidereal configuration used when initializing a calculator. */
 export interface PanchangaOptions {
   ayanamsha?: Ayanamsha;
   /** URL of the sweph-wasm asset. Use the `/node` entry point in Node. */ wasmUrl?: string;
@@ -22,6 +25,7 @@ export interface PanchangaOptions {
   /** Exact ephemeris files to load from `ephemerisUrl`. */ ephemerisFiles?: readonly string[];
   /** Do not download ephemeris data. Calculations may use Swiss Ephemeris' built-in fallback. */ offline?: boolean;
 }
+/** Controls the rise/set calculation provenance returned with Panchanga data. */
 export interface CalculateOptions {
   riseSetMethod?: 'source-altitude' | 'swiss';
 }
@@ -62,6 +66,7 @@ export interface Muhurtas {
   durMuhurta1: TimeRange;
   durMuhurta2: TimeRange;
 }
+/** Daily Panchanga evaluated at the requested location's local sunrise. */
 export interface Panchanga {
   date: CivilDate;
   location: Location;

@@ -12,8 +12,8 @@ import {
   tithiIndex,
   vargaSign,
   zonedCivilDateToJulianDay,
-} from '../src/index.ts';
-import { createNodeCalculator } from '../src/node.ts';
+} from '../src/index.js';
+import { createNodeCalculator } from '../src/node.js';
 
 describe('Panchanga primitives', () => {
   it('normalizes circular longitudes and derives limb indices', () => {

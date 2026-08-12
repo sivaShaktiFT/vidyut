@@ -1,7 +1,7 @@
 {
   "name": "@siva-sh/hora",
-  "version": "0.1.0",
-  "description": "Headless TypeScript Panchanga and Vedic astrology calculations powered by Swiss Ephemeris",
+  "version": "0.1.2",
+  "description": "Professional headless TypeScript Jyotish calculations powered by Swiss Ephemeris",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",
