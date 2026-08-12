@@ -16,7 +16,7 @@ From this repository:
 
 ```sh
 cd bindings-ts
-npm run build:bundler
+npm run build
 ```
 
 In a React workspace, install the local package (or publish it first):
@@ -25,9 +25,9 @@ In a React workspace, install the local package (or publish it first):
 npm install ../path/to/vidyut/bindings-ts/pkg
 ```
 
-Vite and other ESM bundlers understand wasm-pack's `bundler` output. For Next.js, only import the
-module from a Client Component or behind a dynamic import because WebAssembly initialization is a
-browser concern.
+Vite and other ESM bundlers can use the package root. In Next.js, import the explicit
+`@siva-sh/vidyut/browser` entry only from a Client Component or a client-only dynamic import.
+WebAssembly initialization is a browser concern.
 
 ## 2. Initialize once with a React provider
 
@@ -38,7 +38,7 @@ Create `src/vidyut/VidyutProvider.tsx`. The package’s public API exports `Sche
 "use client";
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import {
+import type {
   Chandas,
   Sandhi,
   Scheme,
@@ -46,7 +46,7 @@ import {
   transliterate,
   type Classification,
   type SandhiSplit,
-} from "@siva-sh/vidyut";
+} from "@siva-sh/vidyut/browser";
 
 type VidyutApi = {
   Scheme: typeof Scheme;
@@ -66,22 +66,32 @@ export function VidyutProvider({ children }: { children: ReactNode }) {
   const [api, setApi] = useState<VidyutApi | null>(null);
 
   useEffect(() => {
-    const chandas = new Chandas(meters);
-    const sandhi = new Sandhi();
-    const vyakarana = new Vyakarana();
-    setApi({
-      Scheme,
-      chandas,
-      sandhi,
-      vyakarana,
-      transliterate,
-      classify: (input) => chandas.classify(input),
-      split: (input) => sandhi.splitAll(input),
+    let disposed = false;
+    let instances: { chandas: Chandas; sandhi: Sandhi; vyakarana: Vyakarana } | undefined;
+
+    void import("@siva-sh/vidyut/browser").then(async (vidyut) => {
+      await vidyut.default();
+      if (disposed) return;
+
+      const chandas = new vidyut.Chandas(meters);
+      const sandhi = new vidyut.Sandhi();
+      const vyakarana = new vidyut.Vyakarana();
+      instances = { chandas, sandhi, vyakarana };
+      setApi({
+        Scheme: vidyut.Scheme,
+        chandas,
+        sandhi,
+        vyakarana,
+        transliterate: vidyut.transliterate,
+        classify: (input) => chandas.classify(input),
+        split: (input) => sandhi.splitAll(input),
+      });
     });
     return () => {
-      chandas.free();
-      sandhi.free();
-      vyakarana.free();
+      disposed = true;
+      instances?.chandas.free();
+      instances?.sandhi.free();
+      instances?.vyakarana.free();
     };
   }, []);
 
@@ -111,8 +121,8 @@ const result = classify(slp1);
 const display = transliterate(slp1, Scheme.Slp1, Scheme.Devanagari);
 ```
 
-The bundler output initializes automatically when it is imported. The provider owns the
-long-lived WASM objects and releases them when it unmounts.
+The provider initializes the browser loader once and owns the long-lived WASM objects. It releases
+them when it unmounts. In production, add error state and retry handling around the dynamic import.
 
 ## 3. Serve `vidyut-kosha` behind a typed API
 

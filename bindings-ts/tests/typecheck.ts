@@ -3,12 +3,18 @@ import {
     Sandhi,
     Scheme,
     Vyakarana,
+    initSync,
     type Classification,
     type SandhiSplit,
     type TinantaArgs,
     transliterate,
     type Prakriya,
 } from "../pkg/index.js";
+
+const wasmBytes = new Uint8Array();
+initSync({ module: wasmBytes });
+// @ts-expect-error synchronous initialization needs bytes or a compiled module.
+initSync({ module: new URL("vidyut_bg.wasm", import.meta.url) });
 
 const args: TinantaArgs = {
     dhatu: {

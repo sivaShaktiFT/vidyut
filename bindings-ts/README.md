@@ -23,8 +23,9 @@ console.log(new Sandhi().join("ca", "iti")); // ceti
 
 ## Browsers, bundlers, and workers
 
-Call the default initializer once before using the API. With Vite, webpack, Rollup, Next.js client
-components, and comparable tools, the package selects its browser build automatically.
+Call the default initializer once before using the API. With Vite, webpack, Rollup, and comparable
+tools, the package selects its browser build automatically. In Next.js Client Components, prefer
+the explicit `@siva-sh/vidyut/browser` entry point.
 
 ```ts
 import init, { Scheme, transliterate } from "@siva-sh/vidyut";
@@ -41,7 +42,9 @@ await init({ module_or_path: wasmModuleOrBytes });
 ```
 
 In React, call `init()` from an effect or other client-only startup path. Do not invoke browser
-APIs while rendering on the server; Node.js can instead use the synchronous API above.
+APIs while rendering on the server; Node.js can instead use the synchronous API above. `initSync`
+is also available for a browser Worker that already has the compiled module or bytes; it cannot
+synchronously fetch a `.wasm` file and should not block the UI thread.
 
 ## API
 
@@ -132,4 +135,8 @@ Scheme.Wx
 
 The package uses conditional exports: Node.js receives a native Node WASM loader; browsers and
 bundlers receive an asynchronous ES-module loader. Use the package root rather than importing its
-generated files directly so your runtime receives the correct implementation.
+generated files directly so your runtime receives the correct implementation. Next.js client code
+can explicitly import `@siva-sh/vidyut/browser`.
+
+For complete Next.js patterns, including transliteration, sandhi, grammar, metre, and search
+examples, see [the Next.js guide](./NEXTJS_GUIDE.md).

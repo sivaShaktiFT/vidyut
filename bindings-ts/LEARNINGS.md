@@ -49,13 +49,35 @@ without opaque local files.
 
 ## Verification status
 
-The package is compiled as both `wasm-pack --target web` and `wasm-pack --target bundler`.
+The package is compiled as both `wasm-pack --target web` and `wasm-pack --target nodejs`.
 Native tests cover transliteration, metre identification, and forward/reverse sandhi. WASM tests
 cover the browser exports. The TypeScript contract includes positive inference checks and negative
 `@ts-expect-error` cases for partial `upapada` and multi-variant `PratipadikaArgs`. Runtime
 validation must additionally verify malformed grammar objects reject while a following valid call
 still succeeds, and that `splitAll("ca iti")` never returns a cross-chunk split. The default web
-artifact must be initialized with `await init()`; the React guide uses the bundler artifact.
+artifact must be initialized with `await init()`. The React and Next.js guides use the explicit
+`@siva-sh/vidyut/browser` entry so a framework server build cannot accidentally select the Node
+loader.
 
 `tests/typecheck.ts` type-checks the generated declaration file with TypeScript. A full real-browser
 run remains useful before a release: `wasm-pack test --headless --chrome`.
+
+## Next.js and WASM loading
+
+- The package root has conditional exports for Node and browsers. Next.js builds both server and
+  client graphs, so client-only documentation uses the explicit `@siva-sh/vidyut/browser` export.
+  It keeps loader selection deterministic without asking consumers to import generated files.
+- The browser loader's default `init()` is the performance default. It resolves the packaged WASM
+  URL, uses `instantiateStreaming` when possible, and keeps the binary out of the JavaScript
+  bundle. A shared promise prevents duplicate fetches and must reset after rejection so a temporary
+  network failure remains retryable.
+- wasm-bindgen generates `initSync`, but it can only instantiate bytes or an existing
+  `WebAssembly.Module`; browsers cannot synchronously fetch a `.wasm` asset. The curated TypeScript
+  declaration now exposes that API as `initSync({ module })` and the package exports `wasm-url` to
+  obtain the bundler-managed asset URL.
+- Synchronous compilation blocks the invoking thread. The binding is about 1 MB raw, so the sync
+  API is an opt-in Worker tool for callers that have already loaded bytes, not a main-thread React
+  startup shortcut. Do not base64-inline the binary merely to avoid `await`: it increases JS parse
+  and decode work and loses streaming compilation.
+- `Sandhi`, `Chandas`, and `Vyakarana` allocate WASM-side resources. Create them after initialization
+  and free them in `finally` blocks or effect cleanup; never allocate them during a React render.

@@ -10,6 +10,7 @@ const declarationPath = resolve(scriptDirectory, "../pkg/browser/vidyut.d.ts");
 const publicDeclarationPath = resolve(scriptDirectory, "../pkg/index.d.ts");
 const mitLicensePath = resolve(scriptDirectory, "../LICENSE-MIT");
 const readmePath = resolve(scriptDirectory, "../README.md");
+const nextJsGuidePath = resolve(scriptDirectory, "../NEXTJS_GUIDE.md");
 const packageJson = JSON.parse(await readFile(generatedPackagePath, "utf8"));
 const generatedDeclarations = await readFile(declarationPath, "utf8");
 const generatedModule = await readFile(resolve(scriptDirectory, "../pkg/browser/vidyut.js"), "utf8");
@@ -34,7 +35,7 @@ const hasDefaultInitializer = /export default/.test(generatedModule);
 await writeFile(
   publicDeclarationPath,
   `/* Public, typed API for @siva-sh/vidyut. Generated from bindings-ts/scripts/prepare-npm-package.mjs. */
-${hasDefaultInitializer ? "export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;\nexport default function init(options?: { module_or_path: InitInput | Promise<InitInput> }): Promise<void>;\n" : ""}
+${hasDefaultInitializer ? "export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;\nexport type SyncInitInput = BufferSource | WebAssembly.Module;\n/** Initialize from already-available WASM bytes. This blocks the calling thread. */\nexport function initSync(options: { module: SyncInitInput }): void;\n/** Fetch and initialize the browser WASM module. Prefer this in browser UI code. */\nexport default function init(options?: { module_or_path: InitInput | Promise<InitInput> }): Promise<void>;\n" : ""}
 export function initialize(): void;
 export function transliterate(input: string, from: Scheme, to: Scheme): string;
 export function detect(input: string): Scheme;
@@ -71,6 +72,15 @@ export class Vyakarana { constructor(); free(): void; deriveDhatus(args: DhatuAr
 
 await copyFile(mitLicensePath, resolve(scriptDirectory, "../pkg/LICENSE-MIT"));
 await copyFile(readmePath, resolve(scriptDirectory, "../pkg/README.md"));
+await copyFile(nextJsGuidePath, resolve(scriptDirectory, "../pkg/NEXTJS_GUIDE.md"));
+await writeFile(
+  resolve(scriptDirectory, "../pkg/browser/wasm-url.js"),
+  "export default new URL(\"./vidyut_bg.wasm\", import.meta.url);\n",
+);
+await writeFile(
+  resolve(scriptDirectory, "../pkg/browser/wasm-url.d.ts"),
+  "declare const wasmUrl: URL;\nexport default wasmUrl;\n",
+);
 // wasm-pack adds .gitignore files that ignore every generated artefact. npm honors those files
 // even for directories explicitly listed in `files`, so remove them from the publish tree.
 await Promise.all([
@@ -93,12 +103,21 @@ packageJson.exports = {
     browser: "./browser/vidyut.js",
     default: "./browser/vidyut.js",
   },
+  "./browser": {
+    types: "./index.d.ts",
+    default: "./browser/vidyut.js",
+  },
+  "./wasm-url": {
+    types: "./browser/wasm-url.d.ts",
+    default: "./browser/wasm-url.js",
+  },
 };
 packageJson.files = [
   "browser",
   "node",
   "index.d.ts",
   "LICENSE-MIT",
+  "NEXTJS_GUIDE.md",
   "README.md",
 ];
 

@@ -7,6 +7,7 @@
     "test:types": "npm exec --yes --package=typescript -- tsc --noEmit --strict --target ES2022 --module NodeNext --moduleResolution NodeNext tests/typecheck.ts",
     "test:node": "npm run build && node tests/node-smoke.mjs",
     "test:browser-loader": "npm run build && node tests/browser-loader-smoke.mjs",
+    "test:browser-sync-loader": "npm run build && node tests/browser-sync-loader-smoke.mjs",
     "pack": "npm run build && (cd pkg && npm pack)",
     "publish:npm": "npm run build && (cd pkg && npm publish --access public)"
   }
