@@ -126,8 +126,24 @@ try {
   packageJson.files = ["browser", "LICENSE-MIT", "README.md"];
   await writeFile(packagePath, `${JSON.stringify(packageJson, null, 2)}\n`);
 
-  await rm(path("pkg"), { recursive: true, force: true });
-  await rename(stagingDirectory, path("pkg"));
+  // Move the previous package aside before promotion so an interrupted final rename does not
+  // destroy the last known-good output. Both moves remain atomic within this directory.
+  const packageDirectoryPath = path("pkg");
+  const backupDirectory = path(`.pkg-previous-${process.pid}-${Date.now()}`);
+  let hasPreviousPackage = false;
+  try {
+    await rename(packageDirectoryPath, backupDirectory);
+    hasPreviousPackage = true;
+  } catch (error) {
+    if (error?.code !== "ENOENT") throw error;
+  }
+  try {
+    await rename(stagingDirectory, packageDirectoryPath);
+  } catch (error) {
+    if (hasPreviousPackage) await rename(backupDirectory, packageDirectoryPath);
+    throw error;
+  }
+  if (hasPreviousPackage) await rm(backupDirectory, { recursive: true, force: true });
 } catch (error) {
   await rm(stagingDirectory, { recursive: true, force: true });
   throw error;

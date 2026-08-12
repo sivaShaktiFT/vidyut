@@ -1,3 +1,5 @@
+/// <reference lib="dom" />
+
 export { Scheme } from "./vidyut-bindgen.js";
 
 export interface Akshara { text: string; weight: "G" | "L"; }

@@ -5,6 +5,7 @@
     "build": "node build.mjs",
     "test:web:manual": "npm run build && npx --yes serve . --listen 4173",
     "test:types": "npm exec --yes --package=typescript -- tsc --noEmit --strict --target ES2022 --module NodeNext --moduleResolution NodeNext tests/typecheck.ts",
+    "test:types:node": "npm exec --yes --package=typescript -- tsc --noEmit --strict --target ES2022 --module NodeNext --moduleResolution NodeNext --lib ES2022 tests/typecheck.ts",
     "test:browser-loader": "node tests/browser-loader-smoke.mjs",
     "test:browser-sync-loader": "node tests/browser-sync-loader-smoke.mjs",
     "test:browser": "playwright test tests/browser.spec.mjs",
@@ -13,7 +14,7 @@
     "test:package": "node tests/package-smoke.mjs",
     "test:nextjs": "npm run build && npm run test:nextjs:built",
     "test:nextjs:built": "node tests/nextjs-deployment-smoke.mjs",
-    "test": "npm run build && npm run test:types && npm run test:browser-loader && npm run test:browser-sync-loader && npm run test:browser && npm run test:package && npm run test:nextjs:built && npm run test:wasm",
+    "test": "npm run build && npm run test:types && npm run test:types:node && npm run test:browser-loader && npm run test:browser-sync-loader && npm run test:browser && npm run test:package && npm run test:nextjs:built && npm run test:wasm",
     "pack": "npm run build && (cd pkg && npm pack)",
     "publish:npm": "npm run test && (cd pkg && npm publish --access public)"
   },
