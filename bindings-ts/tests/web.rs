@@ -18,7 +18,7 @@ fn transliterates_in_wasm() {
 
 #[wasm_bindgen_test]
 fn joins_sandhi_in_wasm() {
-    assert_eq!(Sandhi::new().join("ca", "iti"), "ceti");
+    assert_eq!(Sandhi::new().join("ca", "iti").unwrap(), "ceti");
 }
 
 #[derive(Serialize)]

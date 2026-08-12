@@ -1,4 +1,4 @@
-import { Chandas, Sandhi, Scheme, Vyakarana, detect, initialize, transliterate } from "../pkg/node/vidyut.js";
+import { Chandas, Sandhi, Scheme, Vyakarana, detect, initialize, transliterate } from "../pkg/node/vidyut.mjs";
 
 initialize();
 void detect("rAma");
@@ -11,4 +11,4 @@ new Vyakarana().deriveTinantas({
 });
 
 // @ts-expect-error Node's synchronous wasm-pack loader has no browser initializer.
-void import("../pkg/node/vidyut.js").then(({ default: init }) => init());
+void import("../pkg/node/vidyut.mjs").then(({ default: init }) => init());

@@ -41,8 +41,8 @@ compiled module or bytes themselves, pass it as an option:
 await init({ module_or_path: wasmModuleOrBytes });
 ```
 
-`init()` is safe to call concurrently: all callers share one initialization request. If loading or
-compilation fails, a later call retries it. Do not invoke browser APIs while rendering on the
+`init()` is safe to call concurrently: all callers share one initialization request and receive the
+same `InitOutput`. If loading or compilation fails, a later call retries it. Do not invoke browser APIs while rendering on the
 server; Node.js can instead use the synchronous API above. `initSync` is also available for a
 browser Worker that already has the compiled module or bytes; it cannot synchronously fetch a
 `.wasm` file and should not block the UI thread.
@@ -90,15 +90,19 @@ export function SandhiResult({ input }: { input: string }) {
 
   useEffect(() => {
     let cancelled = false;
-    void loadVidyut().then(({ Sandhi }) => {
-      const sandhi = new Sandhi();
-      try {
-        const splits = sandhi.splitAll(input).filter((split) => split.isValid);
-        if (!cancelled) setResult(splits.map((split) => `${split.first} ${split.second}`));
-      } finally {
-        sandhi.free();
-      }
-    });
+    void loadVidyut()
+      .then(({ Sandhi }) => {
+        const sandhi = new Sandhi();
+        try {
+          const splits = sandhi.splitAll(input).filter((split) => split.isValid);
+          if (!cancelled) setResult(splits.map((split) => `${split.first} ${split.second}`));
+        } finally {
+          sandhi.free();
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) console.error("Unable to initialize Vidyut", error);
+      });
     return () => { cancelled = true; };
   }, [input]);
 
@@ -143,8 +147,13 @@ const forms = new Vyakarana().deriveTinantas({
 ```
 
 Pass grammar text to Vidyut in SLP1; transliterate at the application boundary. Grammar enum
-values are strings such as `"Bhvadi"`, `"Lat"`, and `"Kartari"`. A `KrdantaArgs` value requires
+values are strings such as `"Bhvadi"`, `"Lat"`, and `"Kartari"`; the package deliberately does
+not export numeric grammar enum objects. A `KrdantaArgs` value requires
 exactly one of `krt` or `unadi`.
+
+`Chandas` and `Sandhi` accept SLP1/ASCII text and throw for non-ASCII input. When several sandhi
+rules have the same specificity, `Sandhi.join` uses the first rule in Vidyut's generated precedence
+order; use `rules()` when an application needs to inspect that table.
 
 ### Supported transliteration schemes
 

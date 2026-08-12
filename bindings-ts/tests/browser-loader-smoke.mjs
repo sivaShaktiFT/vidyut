@@ -7,7 +7,9 @@ await assert.rejects(init({ module_or_path: new Uint8Array([0]) }));
 const wasm = await readFile(new URL("../pkg/browser/vidyut_bg.wasm", import.meta.url));
 const first = init({ module_or_path: wasm });
 assert.equal(first, init({ module_or_path: wasm }), "concurrent callers must share initialization");
-await first;
+const output = await first;
+assert.ok(output?.memory instanceof WebAssembly.Memory, "init must return the generated initialization output");
+assert.equal(await init(), output, "repeat initialization must return the cached initialization output");
 
 if (transliterate("rAma", Scheme.Slp1, Scheme.Devanagari) !== "राम") {
   throw new Error("The browser loader returned an unexpected result");

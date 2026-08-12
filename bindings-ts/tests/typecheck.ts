@@ -12,7 +12,7 @@ import {
 } from "../pkg/browser/vidyut.js";
 
 const wasmBytes = new Uint8Array();
-initSync({ module: wasmBytes });
+const syncOutput = initSync({ module: wasmBytes });
 // @ts-expect-error synchronous initialization needs bytes or a compiled module.
 initSync({ module: new URL("vidyut_bg.wasm", import.meta.url) });
 
@@ -64,3 +64,4 @@ void metre;
 void splits;
 void derivations;
 void typedDerivations;
+void syncOutput.memory;

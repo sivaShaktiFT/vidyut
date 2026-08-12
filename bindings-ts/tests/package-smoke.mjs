@@ -22,6 +22,13 @@ try {
     await init({ module_or_path: await readFile(wasmUrl) });
     if (browserTransliterate("rAma", BrowserScheme.Slp1, BrowserScheme.Devanagari) !== "राम") throw new Error("browser export failed");
   `], { cwd: consumer });
+  await exec(process.execPath, ["--conditions=browser", "--input-type=module", "--eval", `
+    import { readFile } from "node:fs/promises";
+    import init, { Scheme, transliterate } from "@siva-sh/vidyut";
+    const wasm = await readFile(new URL("./node_modules/@siva-sh/vidyut/browser/vidyut_bg.wasm", import.meta.url));
+    const output = await init({ module_or_path: wasm });
+    if (!output.memory || transliterate("rAma", Scheme.Slp1, Scheme.Devanagari) !== "राम") throw new Error("browser conditional export failed");
+  `], { cwd: consumer });
   console.log("Published package smoke test passed");
 } finally {
   await rm(consumer, { recursive: true, force: true });

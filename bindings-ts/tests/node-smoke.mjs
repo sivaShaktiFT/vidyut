@@ -1,4 +1,6 @@
-import { Chandas, Sandhi, Scheme, Vyakarana, detect, transliterate } from "../pkg/node/vidyut.js";
+import * as vidyut from "../pkg/node/vidyut.mjs";
+import assert from "node:assert/strict";
+import { Chandas, Sandhi, Scheme, Vyakarana, detect, transliterate } from "../pkg/node/vidyut.mjs";
 
 const devanagari = transliterate("rAma", Scheme.Slp1, Scheme.Devanagari);
 const sandhi = new Sandhi().join("ca", "iti");
@@ -24,11 +26,13 @@ const derived = [
   vyakarana.deriveTaddhitantas({ pratipadika: { basic: "rAma" }, taddhita: "matup" }),
   vyakarana.deriveStryantas({ basic: "nara" }),
 ];
+assert.throws(() => sandhiEngine.join("राम", "iti"), /SLP1/);
+assert.throws(() => chandas.classify("राम"), /SLP1/);
 
 if (
   devanagari !== "राम" || sandhi !== "ceti" || detect("राम") !== Scheme.Devanagari ||
-  metre.name !== "vasantatilakA" || !rules.length || !splits.length || !Array.isArray(forms) ||
-  forms.length === 0 || derived.some((result) => !Array.isArray(result))
+  metre.name !== "vasantatilakA" || !rules.length || !splits.length || sandhiEngine.join("rAman", "loke") !== "rAma~l loke" || !Array.isArray(forms) ||
+  forms.length === 0 || derived.some((result) => !Array.isArray(result)) || "Vidyut" in vidyut || "BaseKrt" in vidyut
 ) {
   throw new Error("The Node.js API returned an unexpected result");
 }

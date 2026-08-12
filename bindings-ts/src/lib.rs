@@ -79,6 +79,16 @@ export interface TinantaArgs {
 export interface TaddhitantaArgs { pratipadika: PratipadikaArgs; taddhita: string; }
 "#;
 
+fn ensure_ascii_slp1(input: &str, api: &str) -> Result<(), JsError> {
+    if input.is_ascii() {
+        Ok(())
+    } else {
+        Err(JsError::new(&format!(
+            "{api} accepts SLP1 (ASCII) input only"
+        )))
+    }
+}
+
 /// Install a useful panic hook for browser development.
 ///
 /// Call this once during application startup. All constructors also call it, so doing so is
@@ -179,6 +189,7 @@ impl Chandas {
 
     /// Return the best matching metre for SLP1 text.
     pub fn classify(&self, text: &str) -> Result<JsValue, JsError> {
+        ensure_ascii_slp1(text, "Chandas")?;
         let result = self.inner.classify(text);
         let value = WebMatch {
             name: result.padya().as_ref().map(|padya| padya.name().to_owned()),
@@ -191,6 +202,7 @@ impl Chandas {
     /// Return every matching metre for SLP1 text.
     #[wasm_bindgen(js_name = classifyAll)]
     pub fn classify_all(&self, text: &str) -> Result<JsValue, JsError> {
+        ensure_ascii_slp1(text, "Chandas")?;
         let result = self.inner.classify_all(text);
         let value = WebMatches {
             names: result
@@ -276,23 +288,35 @@ impl Sandhi {
     }
 
     /// Join two SLP1 words, selecting the most specific matching rule.
-    pub fn join(&self, first: &str, second: &str) -> String {
+    pub fn join(&self, first: &str, second: &str) -> Result<String, JsError> {
+        ensure_ascii_slp1(first, "Sandhi")?;
+        ensure_ascii_slp1(second, "Sandhi")?;
         if first.is_empty() || second.is_empty() {
-            return format!("{first}{second}");
+            return Ok(format!("{first}{second}"));
         }
+        // Rules are generated in precedence order. Preserve that order for equally specific
+        // matches instead of relying on Iterator::max_by_key's incidental tie behavior.
         let best = self
             .rules
             .iter()
             .filter(|rule| first.ends_with(rule.first()) && second.starts_with(rule.second()))
-            .max_by_key(|rule| rule.first().len() + rule.second().len());
+            .fold(None, |best: Option<&Rule>, rule| match best {
+                Some(existing)
+                    if existing.first().len() + existing.second().len()
+                        >= rule.first().len() + rule.second().len() =>
+                {
+                    Some(existing)
+                }
+                _ => Some(rule),
+            });
         match best {
-            Some(rule) => format!(
+            Some(rule) => Ok(format!(
                 "{}{}{}",
                 &first[..first.len() - rule.first().len()],
                 rule.result(),
                 &second[rule.second().len()..]
-            ),
-            None => format!("{first}{second}"),
+            )),
+            None => Ok(format!("{first}{second}")),
         }
     }
 
@@ -316,9 +340,7 @@ impl Sandhi {
     /// boundary is not known in advance.
     #[wasm_bindgen(js_name = splitAt)]
     pub fn split_at(&self, input: &str, index: usize) -> Result<JsValue, JsError> {
-        if !input.is_ascii() {
-            return Err(JsError::new("Sandhi accepts SLP1 (ASCII) input only"));
-        }
+        ensure_ascii_slp1(input, "Sandhi")?;
         if input.is_empty() || index >= input.len() {
             return Err(JsError::new(
                 "index must identify a byte in a non-empty input string",
@@ -336,9 +358,7 @@ impl Sandhi {
     /// Return all possible splits in the first contiguous SLP1 chunk.
     #[wasm_bindgen(js_name = splitAll)]
     pub fn split_all(&self, input: &str) -> Result<JsValue, JsError> {
-        if !input.is_ascii() {
-            return Err(JsError::new("Sandhi accepts SLP1 (ASCII) input only"));
-        }
+        ensure_ascii_slp1(input, "Sandhi")?;
         let splits: Vec<WebSplit> = self
             .splitter
             .split_all(input)
@@ -421,7 +441,7 @@ mod tests {
     #[test]
     fn joins_and_splits_sandhi() {
         let sandhi = Sandhi::new();
-        assert_eq!(sandhi.join("ca", "iti"), "ceti");
+        assert_eq!(sandhi.join("ca", "iti").unwrap(), "ceti");
         assert!(sandhi
             .splitter
             .split_at("ceti", 1)
@@ -448,5 +468,16 @@ mod tests {
             Some("vasantatilakA")
         );
         assert_eq!(result.match_type(), MatchType::Pada);
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    #[test]
+    fn rejects_non_slp1_text_consistently() {
+        let sandhi = Sandhi::new();
+        assert!(sandhi.join("राम", "iti").is_err());
+        assert!(sandhi.split_all("राम").is_err());
+
+        let chandas = Chandas::new("vasantatilakA\tvrtta\tGGLGLLLGLLGLGG").unwrap();
+        assert!(chandas.classify("राम").is_err());
     }
 }
