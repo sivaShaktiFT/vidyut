@@ -4,7 +4,8 @@ Verification date: 2026-08-12
 
 ## Result
 
-No open audit findings remain. The package is ready for publication as `@siva-sh/vidyut@0.3.0`.
+No open audit findings remain. The package is ready for publication as a browser-first
+`@siva-sh/vidyut` release.
 
 ## Release contract
 
@@ -12,8 +13,8 @@ No open audit findings remain. The package is ready for publication as `@siva-sh
   runtime data request or TSV configuration surface.
 - `Sandhi.splitAt(input, offset)` uses conventional boundary offsets: `0` is before the input and
   `input.length` is after it.
-- Node.js supports both ESM `import` and CommonJS `require`; browsers use the asynchronous loader.
-- Next.js Client Components use `@siva-sh/vidyut/browser` and are covered by a packed production
+- The package ships one browser WASM module; it has no synchronous Node.js or CommonJS loader.
+- Next.js Client Components use the root browser entry and are covered by a packed production
   deployment test.
 - The published binary excludes the development panic hook. Public API failures are regular
   JavaScript errors.
@@ -23,8 +24,8 @@ No open audit findings remain. The package is ready for publication as `@siva-sh
 
 - `cargo test -p bindings-ts`
 - `npm run build`
-- Node, TypeScript, browser-loader, synchronous-loader, and Playwright browser smoke tests
-- Packed-package runtime and TypeScript resolution tests for ESM Node, CommonJS Node, and browsers
+- TypeScript, browser-loader, synchronous-loader, and Playwright browser smoke tests
+- Packed-package runtime and TypeScript resolution tests for root and explicit browser imports
 - Packed Next.js 16 production build and Chromium deployment test
 - `wasm-pack test --node`
 - `npm pack --dry-run` inspection of `@siva-sh/vidyut@0.3.0`

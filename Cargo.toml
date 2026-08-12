@@ -64,3 +64,8 @@ serde = "1.0.217"
 debug = 0
 incremental = false
 opt-level = "s"
+# A single, whole-program optimized WASM module is substantially smaller than the default
+# multi-codegen-unit build. These settings primarily serve `bindings-ts`.
+lto = "fat"
+codegen-units = 1
+panic = "abort"

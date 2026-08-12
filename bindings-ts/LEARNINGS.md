@@ -49,9 +49,9 @@ without opaque local files.
 
 ## Verification status
 
-The package is compiled as both `wasm-pack --target web` and `wasm-pack --target nodejs`.
-Native tests cover transliteration, metre identification, and forward/reverse sandhi. WASM tests
-cover the browser exports. The TypeScript contract includes positive inference checks and negative
+The package is compiled with `wasm-pack --target web`. Native tests cover transliteration, metre
+identification, and forward/reverse sandhi. WASM tests cover the browser exports. The TypeScript
+contract includes positive inference checks and negative
 `@ts-expect-error` cases for partial `upapada` and multi-variant `PratipadikaArgs`. Runtime
 validation must additionally verify malformed grammar objects reject while a following valid call
 still succeeds, and that `splitAll("ca iti")` never returns a cross-chunk split. The default web
@@ -66,9 +66,9 @@ targets that provide chromedriver, but is not required for publication.
 
 ## Next.js and WASM loading
 
-- The package root has conditional exports for Node and browsers. Next.js builds both server and
-  client graphs, so client-only documentation uses the explicit `@siva-sh/vidyut/browser` export.
-  It keeps loader selection deterministic without asking consumers to import generated files.
+- The package root is the browser loader. Next.js Client Components can import either the root or
+  the explicit `@siva-sh/vidyut/browser` alias; both have identical runtime and TypeScript
+  contracts. The package deliberately omits a duplicate Node WASM binary and CommonJS loader.
 - The browser loader's default `init()` is the performance default. It resolves the packaged WASM
   URL, uses `instantiateStreaming` when possible, and keeps the binary out of the JavaScript
   bundle. A shared promise prevents duplicate fetches and must reset after rejection so a temporary
@@ -87,7 +87,7 @@ targets that provide chromedriver, but is not required for publication.
 ## Package build layout
 
 `bindings-ts/build.mjs` is the package-level build entrypoint. It removes stale generated output,
-builds the web and Node.js targets sequentially, enforces the WASM size budget, and prepares the
+builds the web target, enforces the WASM size budget, and prepares the
 published metadata, declarations, and assets. Keeping this lifecycle in one file avoids a separate
 `scripts/` directory while preserving deterministic builds and `npm run build` as the single public
 command. It requires `wasm-pack 0.15.0` so generated glue remains compatible with the curated

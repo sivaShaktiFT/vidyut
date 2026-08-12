@@ -55,7 +55,7 @@ try {
   await writeFile(join(consumer, "app", "layout.js"), `export default function Layout({ children }) { return <html><body>{children}</body></html>; }\n`);
   await writeFile(join(consumer, "app", "page.js"), `"use client";
 import { useEffect, useState } from "react";
-import init, { Chandas, Sandhi, Scheme, transliterate } from "@siva-sh/vidyut/browser";
+import init, { Chandas, Sandhi, Scheme, transliterate } from "@siva-sh/vidyut";
 
 export default function Page() {
   const [result, setResult] = useState("loading");
